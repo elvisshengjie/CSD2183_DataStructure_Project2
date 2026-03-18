@@ -1,0 +1,4 @@
+simplify
+src/*.o
+*.exe
+tests/*.tmp
