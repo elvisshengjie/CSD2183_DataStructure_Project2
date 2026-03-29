@@ -180,10 +180,15 @@ std::optional<CollapseCandidate> Simplifier::compute_candidate(
     }
     else {
         const double t = S_quad / denom;
+        // t outside [0,1] means E lands outside the AD segment — degenerate, skip.
+        if (t < 0.0 || t > 1.0) return std::nullopt;
         E = { A.x + t * (D.x - A.x), A.y + t * (D.y - A.y) };
     }
 
-    const double displaced = std::abs(S_quad - tri_area(A, E, D));
+    // Displacement is the residual area not cancelled by the area-preserving placement.
+    // Use absolute value so sign convention of the ring doesn't matter.
+    const double displaced = std::abs(tri_area(A, B, C) + tri_area(A, C, D)
+        - tri_area(A, E, D));
 
     CollapseCandidate cand;
     cand.ring_id = ring_id;
@@ -191,6 +196,9 @@ std::optional<CollapseCandidate> Simplifier::compute_candidate(
     cand.generation_a = iter_a->generation;
     cand.replacement_point = E;
     cand.estimated_areal_displacement = displaced;
+    std::cerr << "A=(" << A.x << "," << A.y << ") D=(" << D.x << "," << D.y
+        << ") E=(" << E.x << "," << E.y << ") t=" << (S_quad / denom)
+        << " disp=" << displaced << "\n";
     return cand;
 }
 
