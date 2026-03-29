@@ -113,68 +113,171 @@ SimplificationResult Simplifier::simplify(
     result.areal_displacement = total_displacement;
     return result;
 }
+
+
+// Cyclic list helpers
+RingIter Simplifier::next_cyclic(RingList& ring, RingIter it) {
+    auto nxt = std::next(it);
+    return (nxt == ring.end()) ? ring.begin() : nxt;
 }
 
-std::vector<CollapseCandidate> Simplifier::build_initial_candidates(
-    const Polygon& polygon) const {
-    std::vector<CollapseCandidate> candidates;
+RingIter Simplifier::prev_cyclic(RingList& ring, RingIter it) {
+    return (it == ring.begin()) ? std::prev(ring.end()) : std::prev(it);
+}
 
-    for (const Ring& ring : polygon.rings) {
-        // APSC works on windows of four consecutive vertices A -> B -> C -> D.
-        if (ring.vertices.size() < 4) {
-            continue;
-        }
-
-        for (std::size_t start_index = 0; start_index < ring.vertices.size(); ++start_index) {
-            if (const auto candidate = compute_candidate(ring, start_index)) {
-                candidates.push_back(*candidate);
-            }
-        }
+// Convert a finished RingList back to a plain Ring for output
+Ring Simplifier::ring_list_to_ring(const RingList& ring_list, const int ring_id) {
+    Ring ring;
+    ring.ring_id = ring_id;
+    for (const RingNode& node : ring_list) {
+        ring.vertices.push_back(node.point);
     }
+    return ring;
+}
 
-    return candidates;
+// APSC point E derivation (Kronenfeld et al. 2020, Section 3)
+static double tri_area(const Point& p1, const Point& p2, const Point& p3) {
+    return 0.5 * ((p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x));
+}
+
+static bool segments_cross(const Point& a, const Point& b,
+    const Point& c, const Point& d) {
+    auto cross2 = [](const Point& o, const Point& p, const Point& q) {
+        return (p.x - o.x) * (q.y - o.y) - (p.y - o.y) * (q.x - o.x);
+        };
+    constexpr double kEps = 1e-9;
+    const double d1 = cross2(a, b, c), d2 = cross2(a, b, d);
+    const double d3 = cross2(c, d, a), d4 = cross2(c, d, b);
+    return ((d1 > kEps && d2 < -kEps) || (d1 < -kEps && d2 > kEps)) &&
+        ((d3 > kEps && d4 < -kEps) || (d3 < -kEps && d4 > kEps));
 }
 
 std::optional<CollapseCandidate> Simplifier::compute_candidate(
-    const Ring& ring,
-    const std::size_t start_index) const {
-    if (ring.vertices.size() < 4) {
-        return std::nullopt;
+    RingList& ring,
+    RingIter  iter_a,
+    const int ring_id) {
+
+    if (ring.size() < 4) return std::nullopt;
+
+    RingIter iter_b = next_cyclic(ring, iter_a);
+    RingIter iter_c = next_cyclic(ring, iter_b);
+    RingIter iter_d = next_cyclic(ring, iter_c);
+    if (iter_d == iter_a) return std::nullopt;
+
+    const Point& A = iter_a->point;
+    const Point& B = iter_b->point;
+    const Point& C = iter_c->point;
+    const Point& D = iter_d->point;
+
+    const double S_quad = tri_area(A, B, C) + tri_area(A, C, D);
+    const double S_tri = tri_area(A, B, D);
+    const double denom = S_quad - S_tri;
+
+    Point E;
+    constexpr double kEps = 1e-12;
+    if (std::abs(denom) < kEps) {
+        E = { (A.x + D.x) * 0.5, (A.y + D.y) * 0.5 };
+    }
+    else {
+        const double t = S_quad / denom;
+        E = { A.x + t * (D.x - A.x), A.y + t * (D.y - A.y) };
     }
 
-    const std::size_t a = start_index % ring.vertices.size();
-    const std::size_t d = (start_index + 3) % ring.vertices.size();
+    const double displaced = std::abs(S_quad - tri_area(A, E, D));
 
-    // TODO: Compute the true APSC replacement point E using the derivation from the paper.
-    // The midpoint is only a placeholder to keep the starter project easy to extend and
-    // to make the candidate data flow visible before the real math is implemented.
-    const Point& point_a = ring.vertices[a];
-    const Point& point_d = ring.vertices[d];
-    const Point midpoint {
-        (point_a.x + point_d.x) * 0.5,
-        (point_a.y + point_d.y) * 0.5,
-    };
-
-    CollapseCandidate candidate;
-    candidate.ring_id = ring.ring_id;
-    candidate.start_index = start_index;
-    candidate.replacement_point = midpoint;
-    // Infinity makes it obvious that this value is still a placeholder and must be
-    // replaced by the real areal-displacement cost from the paper.
-    candidate.estimated_areal_displacement = std::numeric_limits<double>::infinity();
-    return candidate;
+    CollapseCandidate cand;
+    cand.ring_id = ring_id;
+    cand.node_id_a = iter_a->node_id;
+    cand.generation_a = iter_a->generation;
+    cand.replacement_point = E;
+    cand.estimated_areal_displacement = displaced;
+    return cand;
 }
 
+// Build initial priority queue
+CandidateQueue Simplifier::build_initial_queue(WorkingRings& rings) {
+    CandidateQueue queue;
+    for (std::size_t r = 0; r < rings.size(); ++r) {
+        RingList& ring = rings[r];
+        if (ring.size() < 4) continue;
+        for (RingIter it = ring.begin(); it != ring.end(); ++it) {
+            if (auto cand = compute_candidate(ring, it, static_cast<int>(r))) {
+                queue.push(*cand);
+            }
+        }
+    }
+    return queue;
+}
+
+void Simplifier::push_neighbourhood_candidates(
+    RingList& ring,
+    RingIter        iter_e,
+    const int       ring_id,
+    CandidateQueue& queue) {
+
+    if (ring.size() < 4) return;
+
+    RingIter start = iter_e;
+    for (int step = 0; step < 3; ++step) {
+        start = prev_cyclic(ring, start);
+    }
+
+    RingIter cur = start;
+    for (int w = 0; w < 4; ++w) {
+        if (auto cand = compute_candidate(ring, cur, ring_id)) {
+            queue.push(*cand);
+        }
+        cur = next_cyclic(ring, cur);
+        if (cur == start) break;
+    }
+}
+
+
+
 bool Simplifier::candidate_is_topology_safe(
-    const Polygon& /*polygon*/,
-    const CollapseCandidate& /*candidate*/) const {
-    // TODO: Apply the candidate to a local copy or local linked structure and test:
-    // - ring simplicity
-    // - ring-ring intersections
-    // - unchanged ring count/orientation assumptions
-    // Returning false keeps the baseline implementation conservative until the real
-    // topology-preserving checks are added.
-    return false;
+    const WorkingRings& rings,
+    const int           ring_id,
+    RingIter            iter_a,
+    const Point& replacement_point) {
+
+    RingList& ring = const_cast<RingList&>(rings[static_cast<std::size_t>(ring_id)]);
+    RingIter iter_b = next_cyclic(ring, iter_a);
+    RingIter iter_c = next_cyclic(ring, iter_b);
+
+    Ring test_ring;
+    test_ring.ring_id = ring_id;
+    bool inserted_e = false;
+    for (auto it = ring.begin(); it != ring.end(); ++it) {
+        if (it == iter_b || it == iter_c) {
+            if (!inserted_e) {
+                test_ring.vertices.push_back(replacement_point);
+                inserted_e = true;
+            }
+        }
+        else {
+            test_ring.vertices.push_back(it->point);
+        }
+    }
+
+    if (test_ring.vertices.size() < 3) return false;
+    if (!ring_is_simple(test_ring))    return false;
+
+    for (std::size_t r = 0; r < rings.size(); ++r) {
+        if (static_cast<int>(r) == ring_id) continue;
+        Ring other = ring_list_to_ring(rings[r], static_cast<int>(r));
+        const std::size_t n = test_ring.vertices.size();
+        const std::size_t m = other.vertices.size();
+        for (std::size_t i = 0; i < n; ++i) {
+            for (std::size_t j = 0; j < m; ++j) {
+                if (segments_cross(
+                    test_ring.vertices[i], test_ring.vertices[(i + 1) % n],
+                    other.vertices[j], other.vertices[(j + 1) % m])) {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
 }
 
 }  // namespace apsc
