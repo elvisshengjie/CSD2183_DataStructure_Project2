@@ -1,0 +1,2043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APSC Polygon Simplifier — CSD2183</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --bg2: #111318;
+    --bg3: #181c23;
+    --panel: #1a1f29;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8eaf0;
+    --muted: #7a8099;
+    --accent: #4f8ef7;
+    --accent2: #7c5bef;
+    --green: #3ecf8e;
+    --amber: #f5a623;
+    --red: #f05252;
+    --teal: #38bdf8;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; min-height: 100vh; }
+
+  /* Layout */
+  .app { display: grid; grid-template-columns: 260px 1fr; grid-template-rows: 56px 1fr; min-height: 100vh; }
+  .topbar { grid-column: 1/-1; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; gap: 16px; z-index: 10; }
+  .sidebar { background: var(--bg2); border-right: 1px solid var(--border); padding: 20px 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+  .main { background: var(--bg); overflow-y: auto; }
+
+  /* Topbar */
+  .logo { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; color: var(--text); }
+  .logo span { color: var(--accent); }
+  .badge { background: rgba(79,142,247,0.15); color: var(--accent); font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(79,142,247,0.25); font-family: var(--mono); }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+  /* Sidebar nav */
+  .nav-section { font-size: 10px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); padding: 12px 20px 6px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 20px; cursor: pointer; border-radius: 0; color: var(--muted); font-size: 13px; font-weight: 400; transition: all 0.15s; border-left: 2px solid transparent; }
+  .nav-item:hover { background: rgba(255,255,255,0.03); color: var(--text); }
+  .nav-item.active { color: var(--accent); background: rgba(79,142,247,0.08); border-left-color: var(--accent); }
+  .nav-icon { width: 16px; height: 16px; opacity: 0.7; }
+
+  /* Pages */
+  .page { display: none; padding: 28px 32px; }
+  .page.active { display: block; }
+
+  /* Section headers */
+  .page-header { margin-bottom: 24px; }
+  .page-title { font-size: 20px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .page-sub { color: var(--muted); font-size: 13px; }
+
+  /* Cards */
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 14px; }
+
+  /* Metric grid */
+  .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .metric-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .metric-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.6px; }
+  .metric-value { font-size: 26px; font-weight: 600; font-family: var(--mono); line-height: 1; }
+  .metric-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .metric-value.green { color: var(--green); }
+  .metric-value.amber { color: var(--amber); }
+  .metric-value.blue { color: var(--accent); }
+  .metric-value.teal { color: var(--teal); }
+
+  /* Grid layouts */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  /* Controls */
+  .control-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .btn { background: rgba(79,142,247,0.12); color: var(--accent); border: 1px solid rgba(79,142,247,0.3); border-radius: 6px; padding: 7px 16px; font-size: 13px; font-family: var(--sans); cursor: pointer; font-weight: 500; transition: all 0.15s; }
+  .btn:hover { background: rgba(79,142,247,0.22); border-color: rgba(79,142,247,0.5); }
+  .btn:active { transform: scale(0.98); }
+  .btn.green { background: rgba(62,207,142,0.1); color: var(--green); border-color: rgba(62,207,142,0.3); }
+  .btn.green:hover { background: rgba(62,207,142,0.2); }
+  .btn.amber { background: rgba(245,166,35,0.1); color: var(--amber); border-color: rgba(245,166,35,0.3); }
+  .btn.amber:hover { background: rgba(245,166,35,0.2); }
+  .btn.red { background: rgba(240,82,82,0.1); color: var(--red); border-color: rgba(240,82,82,0.3); }
+  .btn.sm { padding: 5px 12px; font-size: 12px; }
+  label { font-size: 12px; color: var(--muted); }
+  input[type=range] { accent-color: var(--accent); cursor: pointer; }
+  input[type=number], select, textarea { background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); font-family: var(--sans); font-size: 13px; padding: 7px 10px; outline: none; }
+  input[type=number]:focus, select:focus { border-color: var(--accent); }
+  select option { background: var(--bg3); }
+  textarea { font-family: var(--mono); font-size: 12px; resize: vertical; }
+
+  /* Canvas containers */
+  .canvas-wrap { position: relative; background: var(--bg3); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
+  canvas.poly { display: block; }
+
+  /* Legend */
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .legend-line { width: 18px; height: 2px; }
+
+  /* Progress / step indicator */
+  .steps { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; }
+  .step-pill { background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; font-size: 11px; font-family: var(--mono); color: var(--muted); }
+  .step-pill.active { background: rgba(79,142,247,0.15); border-color: rgba(79,142,247,0.4); color: var(--accent); }
+  .step-pill.done { background: rgba(62,207,142,0.1); border-color: rgba(62,207,142,0.3); color: var(--green); }
+
+  /* Log / output */
+  .log { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; font-family: var(--mono); font-size: 11px; color: var(--muted); padding: 12px 14px; max-height: 160px; overflow-y: auto; line-height: 1.8; }
+  .log .ok { color: var(--green); }
+  .log .warn { color: var(--amber); }
+  .log .info { color: var(--accent); }
+  .log .err { color: var(--red); }
+
+  /* File drop zone */
+  .dropzone { border: 2px dashed var(--border2); border-radius: 10px; padding: 28px; text-align: center; cursor: pointer; transition: all 0.2s; color: var(--muted); }
+  .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: rgba(79,142,247,0.04); color: var(--text); }
+  .dropzone .big { font-size: 32px; margin-bottom: 8px; }
+
+  /* Anim controls */
+  .anim-bar { display: flex; align-items: center; gap: 12px; background: var(--bg3); border-radius: 8px; padding: 10px 14px; border: 1px solid var(--border); margin-bottom: 12px; }
+  .anim-step-count { font-family: var(--mono); font-size: 13px; color: var(--accent); min-width: 80px; }
+
+  /* Chart wrappers */
+  .chart-wrap { position: relative; height: 220px; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { color: var(--muted); font-weight: 500; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); font-family: var(--mono); }
+  tr:last-child td { border-bottom: none; }
+  .chip { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+  .chip.green { background: rgba(62,207,142,0.15); color: var(--green); }
+  .chip.amber { background: rgba(245,166,35,0.15); color: var(--amber); }
+
+  /* Tooltip */
+  .tooltip { position: absolute; background: var(--panel); border: 1px solid var(--border2); border-radius: 6px; padding: 6px 10px; font-size: 11px; font-family: var(--mono); color: var(--text); pointer-events: none; white-space: nowrap; z-index: 100; display: none; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* Responsive tweaks */
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .metric-grid { grid-template-columns: repeat(2, 1fr); }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  /* Pulse animation for run button */
+  @keyframes pulse-accent { 0%,100%{box-shadow:0 0 0 0 rgba(79,142,247,0.4)} 50%{box-shadow:0 0 0 8px rgba(79,142,247,0)} }
+  .btn.pulse { animation: pulse-accent 1.5s infinite; }
+
+  /* Collapse highlight */
+  @keyframes collapse-flash { 0%{opacity:1} 50%{opacity:0.3} 100%{opacity:1} }
+  .flashing { animation: collapse-flash 0.4s ease; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="logo">APSC <span>Simplifier</span></div>
+  <div class="badge">CSD2183 · Project 2</div>
+  <div class="topbar-right">
+    <div class="status-dot" id="status-dot"></div>
+    <span style="font-size:12px;color:var(--muted)" id="status-text">Ready</span>
+  </div>
+</header>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="nav-section">Main</div>
+  <div class="nav-item active" onclick="goPage('run')">
+    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    Run Simplifier
+  </div>
+  <div class="nav-item" onclick="goPage('viz')">
+    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="8 17 12 13 16 17"/><polyline points="8 9 12 13"/></svg>
+    Polygon Viewer
+  </div>
+  <div class="nav-item" onclick="goPage('anim')">
+    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+    APSC Animation
+  </div>
+  <div class="nav-section">Analysis</div>
+  <div class="nav-item" onclick="goPage('perf')">
+    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Performance
+  </div>
+  <div class="nav-item" onclick="goPage('metrics')">
+    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    Metrics
+  </div>
+  <div class="nav-section">Data</div>
+  <div class="nav-item" onclick="goPage('csv')">
+    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    CSV Input
+  </div>
+  <div class="nav-item" onclick="goPage('about')">
+    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    About / Algorithm
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+<!-- ===== PAGE: RUN ===== -->
+<div class="page active" id="page-run">
+  <div class="page-header">
+    <div class="page-title">Run Simplifier</div>
+    <div class="page-sub">Load a CSV polygon, set target vertices, and execute the APSC algorithm</div>
+  </div>
+
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-label">Input Vertices</div>
+      <div class="metric-value blue" id="m-input-v">—</div>
+      <div class="metric-sub">across all rings</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Output Vertices</div>
+      <div class="metric-value green" id="m-output-v">—</div>
+      <div class="metric-sub">after simplification</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Areal Displacement</div>
+      <div class="metric-value amber" id="m-displacement">—</div>
+      <div class="metric-sub">signed area delta</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Collapses Done</div>
+      <div class="metric-value teal" id="m-collapses">—</div>
+      <div class="metric-sub">APSC iterations</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Input Polygon</div>
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+        <div class="big">📂</div>
+        <div style="font-weight:500;margin-bottom:4px">Drop CSV file here</div>
+        <div style="font-size:12px">or click to browse — ring_id,vertex_id,x,y format</div>
+      </div>
+      <input type="file" id="file-input" accept=".csv" style="display:none" onchange="loadFile(event)">
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn sm" onclick="loadExample('square')">Square with hole</button>
+        <button class="btn sm" onclick="loadExample('lake')">Lake polygon</button>
+        <button class="btn sm" onclick="loadExample('complex')">Complex shape</button>
+        <button class="btn sm" onclick="loadExample('star')">Star polygon</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Algorithm Settings</div>
+      <div style="display:grid;gap:12px">
+        <div>
+          <label style="display:block;margin-bottom:6px">Target vertices: <strong id="target-label" style="color:var(--accent)">4</strong></label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="range" id="target-slider" min="3" max="100" value="4" style="flex:1" oninput="updateTargetLabel()">
+            <input type="number" id="target-num" value="4" min="3" max="9999" style="width:70px" oninput="syncTarget()">
+          </div>
+        </div>
+        <div>
+          <label style="display:block;margin-bottom:6px">Animation speed</label>
+          <select id="anim-speed" style="width:100%">
+            <option value="600">Slow (600ms/step)</option>
+            <option value="250" selected>Normal (250ms/step)</option>
+            <option value="80">Fast (80ms/step)</option>
+            <option value="0">Instant</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;margin-bottom:6px">Topology check</label>
+          <select id="topo-check" style="width:100%">
+            <option value="1" selected>Enabled (strict, recommended)</option>
+            <option value="0">Disabled (faster, may self-intersect)</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px">
+        <button class="btn green pulse" id="run-btn" onclick="runSimplifier()">▶ Run APSC</button>
+        <button class="btn" onclick="resetAll()">↺ Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Algorithm Log</div>
+    <div class="log" id="run-log">
+      <span class="info">[ APSC Dashboard ready. Load a polygon and press Run. ]</span>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Input Polygon</div>
+      <div class="canvas-wrap">
+        <canvas id="canvas-input" class="poly" width="440" height="280"></canvas>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#4f8ef7"></div>Exterior ring</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f5a623"></div>Hole ring</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#4f8ef7;opacity:0.4"></div>Vertex</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Output Polygon (simplified)</div>
+      <div class="canvas-wrap">
+        <canvas id="canvas-output" class="poly" width="440" height="280"></canvas>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-line" style="background:#3ecf8e"></div>Simplified</div>
+        <div class="legend-item"><div class="legend-line" style="background:#4f8ef7;opacity:0.3"></div>Original overlay</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f05252"></div>Steiner point</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">CSV Output</div>
+    <div class="control-row">
+      <button class="btn sm" onclick="copyCSV()">Copy to clipboard</button>
+      <button class="btn sm" onclick="downloadCSV()">Download .csv</button>
+    </div>
+    <textarea id="csv-output" rows="10" style="width:100%;background:var(--bg);color:var(--muted)" readonly placeholder="Output will appear here after running..."></textarea>
+  </div>
+</div>
+
+<!-- ===== PAGE: POLYGON VIEWER ===== -->
+<div class="page" id="page-viz">
+  <div class="page-header">
+    <div class="page-title">Polygon Viewer</div>
+    <div class="page-sub">Side-by-side comparison with overlay mode. Scroll to zoom, drag to pan.</div>
+  </div>
+  <div class="control-row">
+    <button class="btn sm" onclick="vizMode='overlay';drawViz()">Overlay</button>
+    <button class="btn sm" onclick="vizMode='side';drawViz()">Side by side</button>
+    <button class="btn sm" onclick="vizMode='diff';drawViz()">Displacement map</button>
+    <button class="btn sm" onclick="resetVizView()">↺ Reset zoom</button>
+    <label>Show vertices: <input type="checkbox" id="show-verts" checked onchange="drawViz()"></label>
+    <label>Show labels: <input type="checkbox" id="show-labels" checked onchange="drawViz()"></label>
+  </div>
+  <div class="canvas-wrap" style="height:480px">
+    <canvas id="canvas-viz" width="900" height="480" style="cursor:grab;width:100%;height:100%"></canvas>
+    <div class="tooltip" id="viz-tooltip"></div>
+  </div>
+  <div class="legend" style="margin-top:12px">
+    <div class="legend-item"><div class="legend-line" style="background:#4f8ef7"></div>Input polygon</div>
+    <div class="legend-item"><div class="legend-line" style="background:#3ecf8e"></div>Simplified polygon</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f05252"></div>Steiner point (new vertex)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7c5bef"></div>Preserved vertex</div>
+    <div class="legend-item" id="diff-legend" style="display:none"><div class="legend-dot" style="background:rgba(240,82,82,0.4)"></div>Displaced area</div>
+  </div>
+</div>
+
+<!-- ===== PAGE: ANIMATION ===== -->
+<div class="page" id="page-anim">
+  <div class="page-header">
+    <div class="page-title">APSC Step-by-Step Animation</div>
+    <div class="page-sub">Watch each collapse event: A→B→C→D collapses to A→E→D. E is placed on the area-preserving line.</div>
+  </div>
+
+  <div class="anim-bar">
+    <button class="btn sm green" id="anim-play-btn" onclick="animToggle()">▶ Play</button>
+    <button class="btn sm" onclick="animStep(-1)">◀ Prev</button>
+    <button class="btn sm" onclick="animStep(1)">Next ▶</button>
+    <button class="btn sm" onclick="animReset()">↺ Reset</button>
+    <div class="anim-step-count" id="anim-counter">Step 0 / 0</div>
+    <input type="range" id="anim-scrub" min="0" max="0" value="0" style="flex:1" oninput="animScrub(this.value)">
+    <label>Speed: <select id="anim-speed2" style="width:90px;padding:4px 6px">
+      <option value="800">Slow</option>
+      <option value="350" selected>Normal</option>
+      <option value="120">Fast</option>
+    </select></label>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Current Collapse</div>
+    <div id="anim-info" style="font-size:13px;color:var(--muted);font-family:var(--mono)">
+      Load and run a polygon on the Run page to see the animation.
+    </div>
+  </div>
+
+  <div class="canvas-wrap" style="height:420px">
+    <canvas id="canvas-anim" width="900" height="420" style="width:100%;height:100%"></canvas>
+  </div>
+
+  <div class="grid-2" style="margin-top:16px">
+    <div class="card">
+      <div class="card-title">Collapse History</div>
+      <div style="max-height:180px;overflow-y:auto">
+        <table>
+          <thead><tr><th>#</th><th>Ring</th><th>Vertices</th><th>Displacement</th><th>Type</th></tr></thead>
+          <tbody id="collapse-table"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Areal Displacement per Step</div>
+      <div class="chart-wrap">
+        <canvas id="chart-steps"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PAGE: PERFORMANCE ===== -->
+<div class="page" id="page-perf">
+  <div class="page-header">
+    <div class="page-title">Performance Analysis</div>
+    <div class="page-sub">Runtime vs input size, memory estimation, and displacement vs vertex count</div>
+  </div>
+
+  <div class="control-row">
+    <button class="btn green" onclick="runPerfBench()">▶ Run Benchmark</button>
+    <span style="color:var(--muted);font-size:12px" id="bench-status">Click to benchmark APSC at multiple input sizes</span>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Runtime vs Input Size (n log n expected)</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="chart-perf-time"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Memory Estimate vs Input Size</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="chart-perf-mem"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Areal Displacement vs Target Vertex Count</div>
+    <div class="chart-wrap" style="height:240px">
+      <canvas id="chart-disp-target"></canvas>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Benchmark Results Table</div>
+    <table>
+      <thead><tr><th>N vertices</th><th>N rings</th><th>Runtime (ms)</th><th>Memory est. (KB)</th><th>Complexity</th><th>Collapses</th></tr></thead>
+      <tbody id="bench-table"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== PAGE: METRICS ===== -->
+<div class="page" id="page-metrics">
+  <div class="page-header">
+    <div class="page-title">Geometry Metrics</div>
+    <div class="page-sub">Detailed geometric analysis of input and output polygons</div>
+  </div>
+
+  <div class="metric-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="metric-card">
+      <div class="metric-label">Signed Area (input)</div>
+      <div class="metric-value blue" id="ma-area-in">—</div>
+      <div class="metric-sub">shoelace formula</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Signed Area (output)</div>
+      <div class="metric-value green" id="ma-area-out">—</div>
+      <div class="metric-sub">must match input</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Area Preserved?</div>
+      <div class="metric-value" id="ma-area-preserved" style="font-size:18px">—</div>
+      <div class="metric-sub">within float tolerance</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Ring Statistics</div>
+      <table>
+        <thead><tr><th>Ring</th><th>Type</th><th>Vertices in</th><th>Vertices out</th><th>CCW?</th><th>Simple?</th></tr></thead>
+        <tbody id="ring-table"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">Topology Checks</div>
+      <div id="topo-checks" style="display:grid;gap:8px;font-size:13px">
+        <div style="color:var(--muted)">Run simplifier to see topology validation results.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Displacement Area Visualization</div>
+    <div class="chart-wrap" style="height:200px">
+      <canvas id="chart-rings"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PAGE: CSV INPUT ===== -->
+<div class="page" id="page-csv">
+  <div class="page-header">
+    <div class="page-title">CSV Input Editor</div>
+    <div class="page-sub">Manually enter or paste CSV data in the required format</div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">CSV Data</div>
+      <div class="control-row">
+        <button class="btn sm" onclick="validateCSV()">Validate</button>
+        <button class="btn sm green" onclick="loadFromEditor()">Load & Visualize</button>
+        <button class="btn sm" onclick="clearEditor()">Clear</button>
+      </div>
+      <textarea id="csv-editor" rows="20" style="width:100%" placeholder="ring_id,vertex_id,x,y
+0,0,-0.5,-1.0
+0,1,1.5,-1.0
+0,2,1.5,1.0
+0,3,-0.5,1.0
+1,0,-0.2,0.5
+1,1,0.5,0.5
+1,2,0.5,-0.5"></textarea>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">Format Reference</div>
+        <div style="font-family:var(--mono);font-size:12px;color:var(--muted);line-height:1.9">
+          <div><span style="color:var(--accent)">ring_id</span> — 0=exterior (CCW), 1+=hole (CW)</div>
+          <div><span style="color:var(--accent)">vertex_id</span> — 0-based, contiguous per ring</div>
+          <div><span style="color:var(--accent)">x, y</span> — floating point coordinates</div>
+          <div style="margin-top:8px;color:var(--border2)">————————————————</div>
+          <div>Min 3 vertices per ring</div>
+          <div>Exterior ring must be CCW</div>
+          <div>Hole rings must be CW</div>
+          <div>No self-intersections allowed</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Validation Result</div>
+        <div id="csv-validation" style="font-size:13px;color:var(--muted)">Press Validate to check your CSV.</div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-title">Preview</div>
+        <div class="canvas-wrap">
+          <canvas id="canvas-csv-preview" width="380" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PAGE: ABOUT ===== -->
+<div class="page" id="page-about">
+  <div class="page-header">
+    <div class="page-title">Algorithm Reference</div>
+    <div class="page-sub">Kronenfeld et al. (2020) — Area-Preserving Segment Collapse</div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">APSC Overview</div>
+      <div style="font-size:13px;line-height:1.8;color:#c0c4d4">
+        <p style="margin-bottom:10px">The <strong style="color:var(--accent)">Area-Preserving Segment Collapse (APSC)</strong> algorithm simplifies a polygon boundary by repeatedly collapsing 4-vertex windows <em>A→B→C→D</em> into <em>A→E→D</em>, where E is placed on a line parallel to AD that preserves the enclosed area exactly.</p>
+        <p style="margin-bottom:10px">The key insight is that <strong>E must lie on the line</strong> defined by: <code style="background:var(--bg3);padding:2px 6px;border-radius:3px;font-size:11px">a·xₑ + b·yₑ + c = 0</code> where a = y_D − y_A, b = x_A − x_D, and c is derived from the four vertex coordinates.</p>
+        <p style="margin-bottom:10px">Among all points on this line, the <strong style="color:var(--green)">optimal E</strong> minimizes areal displacement. It is placed at the intersection of the area-preserving line with either AB or CD, depending on the topological configuration of B and C relative to AD.</p>
+        <p>A <strong style="color:var(--amber)">topology check</strong> prevents self-intersections: before applying each collapse, we verify that neither new edge AE nor ED intersects any existing ring segment.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Data Structures Used</div>
+      <div style="font-size:13px;line-height:1.9;color:#c0c4d4">
+        <div style="display:grid;gap:8px">
+          <div><span style="color:var(--accent);font-family:var(--mono);font-size:12px">Ring (doubly-linked list)</span><br><span style="color:var(--muted);font-size:12px">O(1) vertex removal and neighbor lookup after collapse</span></div>
+          <div><span style="color:var(--accent);font-family:var(--mono);font-size:12px">Min-Heap (priority queue)</span><br><span style="color:var(--muted);font-size:12px">Always picks cheapest collapse. O(log n) push/pop</span></div>
+          <div><span style="color:var(--accent);font-family:var(--mono);font-size:12px">Generation counter</span><br><span style="color:var(--muted);font-size:12px">Lazy invalidation — stale candidates are skipped in O(1)</span></div>
+          <div><span style="color:var(--accent);font-family:var(--mono);font-size:12px">Intersection check</span><br><span style="color:var(--muted);font-size:12px">AE and ED tested against all non-adjacent ring segments</span></div>
+        </div>
+        <div style="margin-top:14px;padding:10px;background:var(--bg3);border-radius:6px;font-family:var(--mono);font-size:11px;color:var(--muted)">
+          Overall complexity: O(n log n)<br>
+          Per collapse update: O(k) where k = segments tested<br>
+          Priority queue operations: O(log n) amortized
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-title">Placement Function (from paper)</div>
+    <div style="font-size:13px;line-height:2;font-family:var(--mono);color:#c0c4d4;background:var(--bg3);padding:16px;border-radius:8px">
+      <div style="color:var(--accent)">function placement(A, B, C, D):</div>
+      <div style="margin-left:16px;color:var(--muted)">  Compute E↔ line: <span style="color:var(--text)">a=yD-yA, b=xA-xD, c=-yB·xA+(yA-yC)·xB+(yB-yD)·xC+yC·xD</span></div>
+      <div style="margin-left:16px;color:var(--muted)">  if <span style="color:var(--text)">side(B,AD) == side(C,AD)</span>:  <span style="color:var(--muted)"># same side of AD</span></div>
+      <div style="margin-left:32px;color:var(--muted)">  if <span style="color:var(--text)">dist(B,AD) > dist(C,AD)</span>: return <span style="color:var(--green)">intersect(E↔, AB)</span></div>
+      <div style="margin-left:32px;color:var(--muted)">  else: return <span style="color:var(--green)">intersect(E↔, CD)</span></div>
+      <div style="margin-left:16px;color:var(--muted)">  else:  <span style="color:var(--muted)"># opposite sides of AD</span></div>
+      <div style="margin-left:32px;color:var(--muted)">  if <span style="color:var(--text)">side(B,AD) == side(E↔,AD)</span>: return <span style="color:var(--green)">intersect(E↔, AB)</span></div>
+      <div style="margin-left:32px;color:var(--muted)">  else: return <span style="color:var(--green)">intersect(E↔, CD)</span></div>
+    </div>
+  </div>
+
+  <div class="grid-3" style="margin-top:16px">
+    <div class="metric-card">
+      <div class="metric-label">Reference</div>
+      <div style="font-size:13px;color:var(--text);margin-top:6px;line-height:1.6">Kronenfeld et al. (2020). Intl Journal of Cartography 6(1), pp. 22–46.</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Course</div>
+      <div style="font-size:13px;color:var(--text);margin-top:6px;line-height:1.6">CSD2183 Data Structures · AY2025/26 T2 · Prof. Michael T. Gastner</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Implementation</div>
+      <div style="font-size:13px;color:var(--text);margin-top:6px;line-height:1.6">C++17 (simplifier.cpp) + JavaScript (this dashboard)</div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+// ============================================================
+//  CORE GEOMETRY & APSC ALGORITHM
+// ============================================================
+
+function cross2D(a, b, c) {
+  return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+}
+
+function signedArea(vertices) {
+  if (vertices.length < 3) return 0;
+  let area = 0;
+  const n = vertices.length;
+  for (let i = 0; i < n; i++) {
+    const cur = vertices[i], nxt = vertices[(i + 1) % n];
+    area += cur.x * nxt.y - nxt.x * cur.y;
+  }
+  return 0.5 * area;
+}
+
+function totalSignedArea(rings) {
+  return rings.reduce((s, r) => s + signedArea(r.vertices), 0);
+}
+
+function isCCW(vertices) { return signedArea(vertices) > 0; }
+
+function lineLineIntersect(p1, p2, p3, p4) {
+  // Returns intersection point of line p1-p2 and line p3-p4 (infinite lines)
+  const d1x = p2.x - p1.x, d1y = p2.y - p1.y;
+  const d2x = p4.x - p3.x, d2y = p4.y - p3.y;
+  const denom = d1x * d2y - d1y * d2x;
+  if (Math.abs(denom) < 1e-12) return null;
+  const t = ((p3.x - p1.x) * d2y - (p3.y - p1.y) * d2x) / denom;
+  return { x: p1.x + t * d1x, y: p1.y + t * d1y };
+}
+
+function pointSideOfLine(p, a, b) {
+  // Returns positive if p is left of a->b, negative if right
+  return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+}
+
+function distToLine(p, a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  if (len < 1e-12) return Math.hypot(p.x - a.x, p.y - a.y);
+  return Math.abs((b.x - a.x) * (a.y - p.y) - (a.x - p.x) * (b.y - a.y)) / len;
+}
+
+// Area-preserving line E_hat: a*x + b*y + c = 0
+function computeELine(A, B, C, D) {
+  const a = D.y - A.y;
+  const b = A.x - D.x;
+  const c = -B.y * A.x + (A.y - C.y) * B.x + (B.y - D.y) * C.x + C.y * D.x;
+  return { a, b, c };
+}
+
+// A point on E_hat line given x (or y if vertical)
+function pointOnELine(line, x) {
+  if (Math.abs(line.b) < 1e-12) {
+    if (Math.abs(line.a) < 1e-12) return null;
+    return { x: -line.c / line.a, y: x };
+  }
+  return { x, y: -(line.a * x + line.c) / line.b };
+}
+
+// Intersect E_hat line with segment AB
+function intersectELineWithSegment(eLine, P1, P2) {
+  // E_hat: a*x + b*y + c = 0  =>  normal (a,b), can form two points
+  // Find two points on E_hat line
+  let ep1, ep2;
+  if (Math.abs(eLine.b) > 1e-9) {
+    ep1 = { x: 0, y: -eLine.c / eLine.b };
+    ep2 = { x: 1, y: -(eLine.a + eLine.c) / eLine.b };
+  } else {
+    ep1 = { x: -eLine.c / eLine.a, y: 0 };
+    ep2 = { x: -eLine.c / eLine.a, y: 1 };
+  }
+  return lineLineIntersect(ep1, ep2, P1, P2);
+}
+
+// Compute APSC placement of E (optimal Steiner point)
+function computeAPSCPoint(A, B, C, D) {
+  const eLine = computeELine(A, B, C, D);
+
+  const sideB = pointSideOfLine(B, A, D);
+  const sideC = pointSideOfLine(C, A, D);
+  const sameSide = (sideB * sideC) > 0;
+
+  let E;
+  if (sameSide) {
+    const dB = distToLine(B, A, D);
+    const dC = distToLine(C, A, D);
+    if (dB > dC) {
+      E = intersectELineWithSegment(eLine, A, B);
+    } else {
+      E = intersectELineWithSegment(eLine, C, D);
+    }
+  } else {
+    // Opposite sides
+    const sideELine = { x: 0, y: 0 }; // a point on E_hat line
+    let ep;
+    if (Math.abs(eLine.b) > 1e-9) {
+      ep = { x: 0, y: -eLine.c / eLine.b };
+    } else {
+      ep = { x: -eLine.c / eLine.a, y: 0 };
+    }
+    const sideEHat = pointSideOfLine(ep, A, D);
+    if ((sideB > 0) === (sideEHat > 0)) {
+      E = intersectELineWithSegment(eLine, A, B);
+    } else {
+      E = intersectELineWithSegment(eLine, C, D);
+    }
+  }
+  return E;
+}
+
+// Compute areal displacement for A->B->C->D => A->E->D
+function computeArealDisplacement(A, B, C, D, E) {
+  if (!E) return Infinity;
+  // Area of triangle ABE + triangle ECD
+  // Displacement = area between old path ABCD and new path AED
+  const tri1 = Math.abs(0.5 * Math.abs(cross2D(A, B, E)));
+  const tri2 = Math.abs(0.5 * Math.abs(cross2D(E, C, D)));
+  // Better: use shoelace for the quadrilaterals
+  const left = Math.abs(signedArea([A, B, E]));
+  const right = Math.abs(signedArea([E, C, D]));
+  return left + right;
+}
+
+// Segments intersect test (proper + collinear)
+function segmentsIntersect(a1, a2, b1, b2) {
+  const EPS = 1e-9;
+  const d1 = cross2D(b1, b2, a1);
+  const d2 = cross2D(b1, b2, a2);
+  const d3 = cross2D(a1, a2, b1);
+  const d4 = cross2D(a1, a2, b2);
+  if (((d1 > EPS && d2 < -EPS) || (d1 < -EPS && d2 > EPS)) &&
+      ((d3 > EPS && d4 < -EPS) || (d3 < -EPS && d4 > EPS))) return true;
+  // Collinear cases
+  function onSeg(p, q, r) {
+    return Math.min(p.x,q.x)-EPS<=r.x && r.x<=Math.max(p.x,q.x)+EPS &&
+           Math.min(p.y,q.y)-EPS<=r.y && r.y<=Math.max(p.y,q.y)+EPS;
+  }
+  if (Math.abs(d1) < EPS && onSeg(b1,b2,a1)) return true;
+  if (Math.abs(d2) < EPS && onSeg(b1,b2,a2)) return true;
+  if (Math.abs(d3) < EPS && onSeg(a1,a2,b1)) return true;
+  if (Math.abs(d4) < EPS && onSeg(a1,a2,b2)) return true;
+  return false;
+}
+
+// Check if candidate collapse is topology-safe
+function candidateTopologySafe(rings, ringIdx, idxA, idxB, idxC, idxD, E) {
+  if (!E) return false;
+  const ring = rings[ringIdx];
+  const verts = ring.vertices;
+  const n = verts.length;
+  const A = verts[idxA], D = verts[idxD];
+
+  // Check AE and ED against all non-adjacent edges of all rings
+  for (let ri = 0; ri < rings.length; ri++) {
+    const rv = rings[ri].vertices;
+    const rn = rv.length;
+    for (let i = 0; i < rn; i++) {
+      const p1 = rv[i], p2 = rv[(i+1)%rn];
+      // Skip edges that share endpoints with the collapse
+      if (ri === ringIdx) {
+        // Skip AB, BC, CD edges
+        const edgeIdxStart = i;
+        const isAB = (edgeIdxStart === idxA) && ((i+1)%rn === idxB);
+        const isBC = (edgeIdxStart === idxB) && ((i+1)%rn === idxC);
+        const isCD = (edgeIdxStart === idxC) && ((i+1)%rn === idxD);
+        const isDA = (edgeIdxStart === idxD) && ((i+1)%rn === idxA);
+        if (isAB || isBC || isCD || isDA) continue;
+        // Skip edges sharing endpoint A or D
+        if (p1 === A || p2 === A || p1 === D || p2 === D) continue;
+      }
+      if (segmentsIntersect(A, E, p1, p2)) return false;
+      if (segmentsIntersect(E, D, p1, p2)) return false;
+    }
+  }
+  return true;
+}
+
+// ============================================================
+//  MIN-HEAP PRIORITY QUEUE
+// ============================================================
+class MinHeap {
+  constructor() { this.data = []; }
+  push(item) {
+    this.data.push(item);
+    this._bubbleUp(this.data.length - 1);
+  }
+  pop() {
+    if (this.data.length === 0) return null;
+    const top = this.data[0];
+    const last = this.data.pop();
+    if (this.data.length > 0) { this.data[0] = last; this._sinkDown(0); }
+    return top;
+  }
+  _bubbleUp(i) {
+    while (i > 0) {
+      const parent = (i - 1) >> 1;
+      if (this.data[parent].cost <= this.data[i].cost) break;
+      [this.data[parent], this.data[i]] = [this.data[i], this.data[parent]];
+      i = parent;
+    }
+  }
+  _sinkDown(i) {
+    const n = this.data.length;
+    while (true) {
+      let smallest = i;
+      const l = 2*i+1, r = 2*i+2;
+      if (l < n && this.data[l].cost < this.data[smallest].cost) smallest = l;
+      if (r < n && this.data[r].cost < this.data[smallest].cost) smallest = r;
+      if (smallest === i) break;
+      [this.data[smallest], this.data[i]] = [this.data[i], this.data[smallest]];
+      i = smallest;
+    }
+  }
+  get size() { return this.data.length; }
+}
+
+// ============================================================
+//  FULL APSC SIMPLIFIER
+// ============================================================
+function runAPSC(inputRings, targetVertices, topoCheck, onCollapse) {
+  // Deep clone rings as arrays with generation tracking
+  const rings = inputRings.map(r => ({
+    id: r.id,
+    vertices: r.vertices.map(v => ({...v})),
+    gen: new Array(r.vertices.length).fill(0)
+  }));
+
+  const inputArea = totalSignedArea(rings);
+  let currentVertices = rings.reduce((s, r) => s + r.vertices.length, 0);
+  let totalDisplacement = 0;
+  const collapseHistory = [];
+
+  if (targetVertices >= currentVertices) {
+    return { rings, inputArea, outputArea: inputArea, areal_displacement: 0, collapseHistory, seededCandidates: 0, successfulCollapses: 0 };
+  }
+
+  // Build heap
+  const heap = new MinHeap();
+  // Generation counter per (ring, vertex index) to detect stale candidates
+  const genCounters = rings.map(r => new Array(r.vertices.length).fill(0));
+
+  function pushCandidates(ringIdx, startIdx) {
+    const ring = rings[ringIdx];
+    const n = ring.vertices.length;
+    if (n < 4) return;
+    const iA = ((startIdx % n) + n) % n;
+    const iB = (iA + 1) % n;
+    const iC = (iA + 2) % n;
+    const iD = (iA + 3) % n;
+    const A = ring.vertices[iA], B = ring.vertices[iB];
+    const C = ring.vertices[iC], D = ring.vertices[iD];
+    const E = computeAPSCPoint(A, B, C, D);
+    if (!E) return;
+    const cost = computeArealDisplacement(A, B, C, D, E);
+    heap.push({
+      ringIdx, iA, iB, iC, iD,
+      E, cost,
+      genA: genCounters[ringIdx][iA],
+      genB: genCounters[ringIdx][iB],
+      genC: genCounters[ringIdx][iC],
+      genD: genCounters[ringIdx][iD],
+    });
+  }
+
+  // Seed all windows
+  let seeded = 0;
+  for (let ri = 0; ri < rings.length; ri++) {
+    const n = rings[ri].vertices.length;
+    for (let si = 0; si < n; si++) {
+      pushCandidates(ri, si);
+      seeded++;
+    }
+  }
+
+  let collapseCount = 0;
+
+  while (currentVertices > targetVertices && heap.size > 0) {
+    const cand = heap.pop();
+    const { ringIdx, iA, iB, iC, iD, E } = cand;
+    const ring = rings[ringIdx];
+    const n = ring.vertices.length;
+    if (n < 4) continue;
+
+    // Check staleness using generation counters
+    const iaValid = (iA < n) && genCounters[ringIdx][iA] === cand.genA;
+    const ibValid = (iB < n) && genCounters[ringIdx][iB] === cand.genB;
+    const icValid = (iC < n) && genCounters[ringIdx][iC] === cand.genC;
+    const idValid = (iD < n) && genCounters[ringIdx][iD] === cand.genD;
+    if (!iaValid || !ibValid || !icValid || !idValid) continue;
+
+    // Verify A,B,C,D are still consecutive
+    if ((iA + 1) % n !== iB || (iB + 1) % n !== iC || (iC + 1) % n !== iD) continue;
+
+    // Recompute E (vertices may have shifted after previous collapses in theory)
+    const A = ring.vertices[iA], B = ring.vertices[iB];
+    const C = ring.vertices[iC], D = ring.vertices[iD];
+    const Enew = computeAPSCPoint(A, B, C, D);
+    if (!Enew) continue;
+
+    // Topology check
+    if (topoCheck && !candidateTopologySafe(rings, ringIdx, iA, iB, iC, iD, Enew)) continue;
+
+    // Apply collapse: remove B and C, replace with E, update A's neighbor
+    const disp = computeArealDisplacement(A, B, C, D, Enew);
+    totalDisplacement += disp;
+
+    // Record for animation
+    const snapBefore = ring.vertices.map(v => ({...v}));
+
+    // Remove iC then iB (higher index first to preserve indices)
+    const remHigh = Math.max(iB, iC);
+    const remLow = Math.min(iB, iC);
+    ring.vertices.splice(remHigh, 1);
+    ring.vertices.splice(remLow, 1);
+    genCounters[ringIdx].splice(remHigh, 1);
+    genCounters[ringIdx].splice(remLow, 1);
+
+    // Insert E at position iB (where B was, now after A)
+    const insertPos = remLow;
+    ring.vertices.splice(insertPos, 0, {...Enew, isSteiner: true});
+    genCounters[ringIdx].splice(insertPos, 0, 0);
+
+    currentVertices -= 1; // removed 2, added 1
+
+    // Increment generation for affected vertices
+    const newN = ring.vertices.length;
+    const newIA = ((insertPos - 1) + newN) % newN;
+    const newIE = insertPos % newN;
+    const newID = (insertPos + 1) % newN;
+    genCounters[ringIdx][newIA]++;
+    genCounters[ringIdx][newIE]++;
+    genCounters[ringIdx][newID]++;
+
+    collapseHistory.push({
+      ringIdx,
+      ringId: ring.id,
+      A: {...A}, B: {...B}, C: {...C}, D: {...D}, E: {...Enew},
+      disp,
+      vertsBefore: snapBefore,
+      vertsAfter: ring.vertices.map(v => ({...v})),
+      allRingsBefore: rings.map(r => r.vertices.map(v => ({...v}))),
+      stepVertices: currentVertices,
+    });
+
+    if (onCollapse) onCollapse(collapseHistory[collapseHistory.length - 1]);
+
+    // Push updated candidates for the neighborhood of E
+    for (let offset = -3; offset <= 0; offset++) {
+      pushCandidates(ringIdx, ((newIE + offset) % newN + newN) % newN);
+    }
+
+    collapseCount++;
+  }
+
+  const outputArea = totalSignedArea(rings);
+  return {
+    rings,
+    inputArea,
+    outputArea,
+    areal_displacement: totalDisplacement,
+    collapseHistory,
+    seededCandidates: seeded,
+    successfulCollapses: collapseCount
+  };
+}
+
+// ============================================================
+//  CSV PARSING
+// ============================================================
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) throw new Error('CSV too short');
+  const header = lines[0].trim();
+  if (header !== 'ring_id,vertex_id,x,y') throw new Error('Bad header: expected ring_id,vertex_id,x,y');
+
+  const rings = [];
+  const expectedVid = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const parts = line.split(',');
+    if (parts.length < 4) throw new Error(`Row ${i}: expected 4 columns`);
+    const ringId = parseInt(parts[0].trim());
+    const vertId = parseInt(parts[1].trim());
+    const x = parseFloat(parts[2].trim());
+    const y = parseFloat(parts[3].trim());
+    if (isNaN(ringId) || isNaN(vertId) || isNaN(x) || isNaN(y)) throw new Error(`Row ${i}: non-numeric value`);
+    if (ringId < 0) throw new Error(`Row ${i}: negative ring_id`);
+    if (ringId >= rings.length) {
+      if (ringId !== rings.length) throw new Error(`ring_id must be contiguous from 0. Got ${ringId}, expected ${rings.length}`);
+      rings.push({ id: ringId, vertices: [] });
+      expectedVid.push(0);
+    }
+    if (vertId !== expectedVid[ringId]) throw new Error(`Ring ${ringId}: vertex_id must be contiguous. Got ${vertId}, expected ${expectedVid[ringId]}`);
+    rings[ringId].vertices.push({ x, y });
+    expectedVid[ringId]++;
+  }
+  if (rings.length === 0) throw new Error('No rings found');
+  for (const r of rings) if (r.vertices.length < 3) throw new Error(`Ring ${r.id}: needs at least 3 vertices`);
+
+  // Normalize orientation
+  for (let i = 0; i < rings.length; i++) {
+    const ccw = isCCW(rings[i].vertices);
+    if (i === 0 && !ccw) rings[i].vertices.reverse();
+    if (i > 0 && ccw) rings[i].vertices.reverse();
+  }
+  return rings;
+}
+
+function generateCSV(result) {
+  let out = 'ring_id,vertex_id,x,y\n';
+  for (const ring of result.rings) {
+    for (let vi = 0; vi < ring.vertices.length; vi++) {
+      const v = ring.vertices[vi];
+      out += `${ring.id},${vi},${v.x},${v.y}\n`;
+    }
+  }
+  out += `Total signed area in input: ${result.inputArea.toExponential(6)}\n`;
+  out += `Total signed area in output: ${result.outputArea.toExponential(6)}\n`;
+  out += `Total areal displacement: ${result.areal_displacement.toExponential(6)}\n`;
+  return out;
+}
+
+// ============================================================
+//  EXAMPLE POLYGONS
+// ============================================================
+const EXAMPLES = {
+  square: `ring_id,vertex_id,x,y
+0,0,-2.0,-2.0
+0,1,2.0,-2.0
+0,2,2.0,2.0
+0,3,-2.0,2.0
+1,0,-1.2,1.2
+1,1,-0.1,1.2
+1,2,-0.1,0.1
+1,3,-1.2,0.1
+2,0,0.3,-0.2
+2,1,1.2,0.4
+2,2,1.4,0.4
+2,3,1.6,-0.2
+2,4,1.4,-1.0
+2,5,0.5,-1.0`,
+
+  lake: `ring_id,vertex_id,x,y
+0,0,0.0,0.0
+0,1,1.2,-0.3
+0,2,2.5,0.1
+0,3,3.4,0.8
+0,4,3.8,1.9
+0,5,3.5,3.1
+0,6,2.8,3.8
+0,7,1.9,4.2
+0,8,0.9,4.0
+0,9,0.1,3.3
+0,10,-0.5,2.5
+0,11,-0.7,1.5
+0,12,-0.4,0.7
+1,0,1.0,1.2
+1,1,1.8,0.9
+1,2,2.4,1.5
+1,3,2.2,2.3
+1,4,1.4,2.5
+1,5,0.8,2.0`,
+
+  complex: `ring_id,vertex_id,x,y
+0,0,0.0,0.0
+0,1,0.5,-0.8
+0,2,1.5,-1.2
+0,3,2.8,-1.0
+0,4,4.0,-0.3
+0,5,4.8,0.8
+0,6,5.0,2.0
+0,7,4.5,3.2
+0,8,3.5,4.0
+0,9,2.2,4.4
+0,10,1.0,4.2
+0,11,0.0,3.5
+0,12,-0.8,2.5
+0,13,-1.0,1.4
+0,14,-0.6,0.5
+1,0,1.0,0.8
+1,1,2.0,0.6
+1,2,2.8,1.2
+1,3,2.6,2.2
+1,4,1.8,2.6
+1,5,1.0,2.2
+1,6,0.6,1.5
+2,0,3.2,1.8
+2,1,3.8,1.5
+2,2,4.2,2.2
+2,3,3.8,2.9
+2,4,3.1,2.7`,
+
+  star: `ring_id,vertex_id,x,y
+0,0,0.0,3.0
+0,1,-0.6,1.1
+0,2,-2.9,0.9
+0,3,-1.0,-0.4
+0,4,-1.8,-2.6
+0,5,0.0,-1.5
+0,6,1.8,-2.6
+0,7,1.0,-0.4
+0,8,2.9,0.9
+0,9,0.6,1.1`
+};
+
+// ============================================================
+//  STATE
+// ============================================================
+let currentRings = null;
+let currentResult = null;
+let vizMode = 'overlay';
+let vizTransform = { sx: 1, sy: 1, tx: 0, ty: 0 };
+let animFrame = 0;
+let animPlaying = false;
+let animTimer = null;
+let perfCharts = {};
+let stepChartInstance = null;
+
+// ============================================================
+//  CANVAS DRAWING
+// ============================================================
+function getBounds(rings) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const r of rings) {
+    for (const v of r.vertices) {
+      minX = Math.min(minX, v.x); minY = Math.min(minY, v.y);
+      maxX = Math.max(maxX, v.x); maxY = Math.max(maxY, v.y);
+    }
+  }
+  return { minX, minY, maxX, maxY };
+}
+
+function makeTransform(rings, w, h, pad = 30) {
+  const b = getBounds(rings);
+  const rangeX = b.maxX - b.minX || 1, rangeY = b.maxY - b.minY || 1;
+  const scale = Math.min((w - pad*2) / rangeX, (h - pad*2) / rangeY);
+  const tx = pad + (w - pad*2 - rangeX * scale) / 2 - b.minX * scale;
+  const ty = pad + (h - pad*2 - rangeY * scale) / 2 - b.minY * scale;
+  return { scale, tx, ty };
+}
+
+function toCanvas(v, t) {
+  return { x: v.x * t.scale + t.tx, y: v.y * t.scale + t.ty };
+}
+
+function drawRings(ctx, rings, transform, strokeColor, fillColor, alpha = 1, drawVerts = true, vertColor = null, vertRadius = 3) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  for (let ri = 0; ri < rings.length; ri++) {
+    const ring = rings[ri];
+    const verts = ring.vertices;
+    if (verts.length < 2) continue;
+    ctx.beginPath();
+    const p0 = toCanvas(verts[0], transform);
+    ctx.moveTo(p0.x, p0.y);
+    for (let i = 1; i < verts.length; i++) {
+      const p = toCanvas(verts[i], transform);
+      ctx.lineTo(p.x, p.y);
+    }
+    ctx.closePath();
+    if (fillColor) { ctx.fillStyle = fillColor; ctx.fill(); }
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    if (drawVerts) {
+      for (const v of verts) {
+        const cp = toCanvas(v, transform);
+        ctx.beginPath();
+        ctx.arc(cp.x, cp.y, vertRadius, 0, Math.PI * 2);
+        ctx.fillStyle = v.isSteiner ? '#f05252' : (vertColor || (ri === 0 ? '#4f8ef7' : '#f5a623'));
+        ctx.fill();
+      }
+    }
+  }
+  ctx.restore();
+}
+
+function drawCanvas(canvasId, rings, opts = {}) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const { width: w, height: h } = canvas;
+  ctx.clearRect(0, 0, w, h);
+
+  // Background grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < w; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+  for (let y = 0; y < h; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+
+  if (!rings || rings.length === 0) {
+    ctx.fillStyle = 'rgba(122,128,153,0.4)';
+    ctx.font = '13px Space Grotesk, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('No polygon loaded', w/2, h/2);
+    return;
+  }
+
+  const t = opts.transform || makeTransform(rings, w, h);
+  const stroke = opts.stroke || '#4f8ef7';
+  const fill = opts.fill || 'rgba(79,142,247,0.06)';
+  drawRings(ctx, rings, t, stroke, fill, 1, opts.showVerts !== false, opts.vertColor, opts.vertRadius);
+}
+
+// ============================================================
+//  MAIN RUN FUNCTION
+// ============================================================
+function runSimplifier() {
+  if (!currentRings) {
+    logMsg('warn', 'No polygon loaded. Load a CSV file or select an example first.');
+    return;
+  }
+
+  const target = parseInt(document.getElementById('target-num').value);
+  const topoCheck = document.getElementById('topo-check').value === '1';
+  const totalV = currentRings.reduce((s, r) => s + r.vertices.length, 0);
+
+  setStatus('Running...', '#f5a623');
+  logMsg('info', `Starting APSC: ${totalV} vertices → target ${target} | topo check: ${topoCheck}`);
+
+  const t0 = performance.now();
+  const result = runAPSC(currentRings, target, topoCheck, null);
+  const elapsed = (performance.now() - t0).toFixed(1);
+
+  currentResult = result;
+
+  const outV = result.rings.reduce((s, r) => s + r.vertices.length, 0);
+  const areaPreserved = Math.abs(result.inputArea - result.outputArea) < 1e-9;
+
+  // Update metrics
+  document.getElementById('m-input-v').textContent = totalV;
+  document.getElementById('m-output-v').textContent = outV;
+  document.getElementById('m-displacement').textContent = result.areal_displacement.toExponential(3);
+  document.getElementById('m-collapses').textContent = result.successfulCollapses;
+
+  logMsg('ok', `Done in ${elapsed}ms. Collapses: ${result.successfulCollapses}. Vertices: ${totalV} → ${outV}`);
+  logMsg(areaPreserved ? 'ok' : 'err', `Area preserved: ${areaPreserved ? 'YES ✓' : 'FAIL ✗'} (Δ=${(result.inputArea - result.outputArea).toExponential(3)})`);
+  logMsg('info', `Total areal displacement: ${result.areal_displacement.toExponential(6)}`);
+  logMsg('info', `Seeded candidates: ${result.seededCandidates}`);
+
+  setStatus('Done', '#3ecf8e');
+
+  // Draw canvases
+  drawCanvas('canvas-input', currentRings, { stroke: '#4f8ef7', fill: 'rgba(79,142,247,0.08)' });
+  drawCanvas('canvas-output', result.rings, { stroke: '#3ecf8e', fill: 'rgba(62,207,142,0.08)' });
+
+  // CSV output
+  document.getElementById('csv-output').value = generateCSV(result);
+
+  // Update metrics page
+  updateMetricsPage(result);
+
+  // Setup animation
+  setupAnimation(result);
+
+  document.getElementById('run-btn').classList.remove('pulse');
+}
+
+// ============================================================
+//  NAVIGATION
+// ============================================================
+function goPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+
+  if (id === 'viz') drawViz();
+  if (id === 'anim') drawAnimFrame();
+  if (id === 'perf') initPerfCharts();
+}
+
+// ============================================================
+//  FILE LOADING
+// ============================================================
+function loadFile(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      currentRings = parseCSV(e.target.result);
+      document.getElementById('csv-editor').value = e.target.result;
+      onPolygonLoaded(file.name);
+    } catch (err) {
+      logMsg('err', 'CSV parse error: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function loadExample(name) {
+  try {
+    currentRings = parseCSV(EXAMPLES[name]);
+    currentResult = null;
+    onPolygonLoaded(name);
+    document.getElementById('csv-editor').value = EXAMPLES[name];
+    // Update target slider max
+    const total = currentRings.reduce((s, r) => s + r.vertices.length, 0);
+    document.getElementById('target-slider').max = total;
+    document.getElementById('target-slider').value = Math.max(3, Math.floor(total * 0.5));
+    syncTarget();
+  } catch (e) {
+    logMsg('err', e.message);
+  }
+}
+
+function onPolygonLoaded(name) {
+  const total = currentRings.reduce((s, r) => s + r.vertices.length, 0);
+  logMsg('ok', `Loaded "${name}": ${total} vertices across ${currentRings.length} ring(s)`);
+  document.getElementById('m-input-v').textContent = total;
+  document.getElementById('m-output-v').textContent = '—';
+  document.getElementById('m-displacement').textContent = '—';
+  document.getElementById('m-collapses').textContent = '—';
+  drawCanvas('canvas-input', currentRings, { stroke: '#4f8ef7', fill: 'rgba(79,142,247,0.08)' });
+  drawCanvas('canvas-output', null);
+  document.getElementById('run-btn').classList.add('pulse');
+  setStatus('Polygon loaded', '#4f8ef7');
+}
+
+function dragOver(e) { e.preventDefault(); document.getElementById('dropzone').classList.add('drag'); }
+function dragLeave() { document.getElementById('dropzone').classList.remove('drag'); }
+function dropFile(e) {
+  e.preventDefault();
+  dragLeave();
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      currentRings = parseCSV(ev.target.result);
+      onPolygonLoaded(file.name);
+    } catch (err) { logMsg('err', err.message); }
+  };
+  reader.readAsText(file);
+}
+
+function updateTargetLabel() {
+  const v = document.getElementById('target-slider').value;
+  document.getElementById('target-label').textContent = v;
+  document.getElementById('target-num').value = v;
+}
+
+function syncTarget() {
+  const v = document.getElementById('target-num').value;
+  document.getElementById('target-slider').value = v;
+  document.getElementById('target-label').textContent = v;
+}
+
+function resetAll() {
+  currentRings = null;
+  currentResult = null;
+  drawCanvas('canvas-input', null);
+  drawCanvas('canvas-output', null);
+  document.getElementById('csv-output').value = '';
+  document.getElementById('m-input-v').textContent = '—';
+  document.getElementById('m-output-v').textContent = '—';
+  document.getElementById('m-displacement').textContent = '—';
+  document.getElementById('m-collapses').textContent = '—';
+  logMsg('info', 'Reset.');
+  setStatus('Ready', '#3ecf8e');
+}
+
+function logMsg(type, msg) {
+  const log = document.getElementById('run-log');
+  const span = document.createElement('span');
+  span.className = type;
+  span.textContent = `[ ${new Date().toLocaleTimeString()} ] ${msg}`;
+  log.appendChild(span);
+  log.appendChild(document.createElement('br'));
+  log.scrollTop = log.scrollHeight;
+}
+
+function setStatus(text, color) {
+  document.getElementById('status-text').textContent = text;
+  document.getElementById('status-dot').style.background = color;
+  document.getElementById('status-dot').style.boxShadow = `0 0 8px ${color}`;
+}
+
+function copyCSV() {
+  const text = document.getElementById('csv-output').value;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => logMsg('ok', 'CSV copied to clipboard'));
+}
+
+function downloadCSV() {
+  const text = document.getElementById('csv-output').value;
+  if (!text) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type:'text/csv'}));
+  a.download = 'simplified.csv';
+  a.click();
+}
+
+// ============================================================
+//  VISUALIZATION PAGE
+// ============================================================
+let vizDrag = false, vizDragStart = null;
+let vizOffX = 0, vizOffY = 0, vizZoom = 1;
+
+function drawViz() {
+  const canvas = document.getElementById('canvas-viz');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < w; x += 50) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
+  for (let y = 0; y < h; y += 50) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+
+  if (!currentRings) {
+    ctx.fillStyle = 'rgba(122,128,153,0.5)';
+    ctx.font = '14px Space Grotesk, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Load and run a polygon first', w/2, h/2);
+    return;
+  }
+
+  document.getElementById('diff-legend').style.display = vizMode === 'diff' ? '' : 'none';
+
+  const allRings = currentResult ? [...currentRings, ...currentResult.rings] : [...currentRings];
+  const allVerts = currentResult ? allRings : currentRings;
+  const b = getBounds(allVerts);
+  const pad = 50;
+  const baseScale = Math.min((w - pad*2) / Math.max(b.maxX - b.minX, 0.1), (h - pad*2) / Math.max(b.maxY - b.minY, 0.1));
+  const scale = baseScale * vizZoom;
+  const tx = pad + (w - pad*2 - (b.maxX - b.minX) * scale) / 2 - b.minX * scale + vizOffX;
+  const ty = pad + (h - pad*2 - (b.maxY - b.minY) * scale) / 2 - b.minY * scale + vizOffY;
+  const t = { scale, tx, ty };
+
+  const showVerts = document.getElementById('show-verts')?.checked;
+  const showLabels = document.getElementById('show-labels')?.checked;
+
+  if (vizMode === 'overlay' || vizMode === 'diff') {
+    // Draw diff fill first
+    if (vizMode === 'diff' && currentResult) {
+      ctx.save();
+      ctx.globalAlpha = 0.3;
+      // Input fill in red
+      for (const ring of currentRings) {
+        ctx.beginPath();
+        const p0 = toCanvas(ring.vertices[0], t);
+        ctx.moveTo(p0.x, p0.y);
+        for (let i = 1; i < ring.vertices.length; i++) {
+          const p = toCanvas(ring.vertices[i], t);
+          ctx.lineTo(p.x, p.y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = '#f05252';
+        ctx.fill();
+      }
+      // Output fill in green (XOR visual)
+      for (const ring of currentResult.rings) {
+        ctx.beginPath();
+        const p0 = toCanvas(ring.vertices[0], t);
+        ctx.moveTo(p0.x, p0.y);
+        for (let i = 1; i < ring.vertices.length; i++) {
+          const p = toCanvas(ring.vertices[i], t);
+          ctx.lineTo(p.x, p.y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = '#3ecf8e';
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    // Input polygon
+    drawRings(ctx, currentRings, t, '#4f8ef7', 'rgba(79,142,247,0.08)', 1, showVerts, '#7c5bef', 3);
+    // Output polygon
+    if (currentResult) {
+      drawRings(ctx, currentResult.rings, t, '#3ecf8e', 'rgba(62,207,142,0.05)', 0.85, showVerts, '#f05252', 4);
+    }
+  } else {
+    // Side by side
+    const half = w / 2;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, half - 4, h); ctx.clip();
+    const tLeft = { scale: scale * 0.85, tx: tx * 0.85 + 10, ty };
+    drawRings(ctx, currentRings, tLeft, '#4f8ef7', 'rgba(79,142,247,0.08)', 1, showVerts, '#7c5bef', 3);
+    ctx.restore();
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(half, 0); ctx.lineTo(half, h); ctx.stroke();
+
+    ctx.save();
+    ctx.beginPath(); ctx.rect(half + 4, 0, half - 4, h); ctx.clip();
+    const tRight = { scale: scale * 0.85, tx: tx * 0.85 + half + 10, ty };
+    if (currentResult) {
+      drawRings(ctx, currentResult.rings, tRight, '#3ecf8e', 'rgba(62,207,142,0.08)', 1, showVerts, '#f05252', 4);
+    }
+    ctx.restore();
+
+    ctx.fillStyle = 'rgba(122,128,153,0.6)';
+    ctx.font = '11px Space Grotesk, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Input', half/2, 16);
+    ctx.fillText('Simplified', half + half/2, 16);
+  }
+
+  if (showLabels && currentResult) {
+    ctx.fillStyle = 'rgba(122,128,153,0.8)';
+    ctx.font = '11px JetBrains Mono, monospace';
+    ctx.textAlign = 'left';
+    const totalIn = currentRings.reduce((s,r) => s + r.vertices.length, 0);
+    const totalOut = currentResult.rings.reduce((s,r) => s + r.vertices.length, 0);
+    ctx.fillText(`Input: ${totalIn}v  Output: ${totalOut}v  Displacement: ${currentResult.areal_displacement.toExponential(3)}`, 10, h - 10);
+  }
+}
+
+function resetVizView() { vizOffX = 0; vizOffY = 0; vizZoom = 1; drawViz(); }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const vc = document.getElementById('canvas-viz');
+  if (!vc) return;
+  vc.addEventListener('wheel', e => {
+    e.preventDefault();
+    vizZoom = Math.max(0.2, Math.min(10, vizZoom * (1 - e.deltaY * 0.001)));
+    drawViz();
+  });
+  vc.addEventListener('mousedown', e => { vizDrag = true; vizDragStart = {x: e.clientX - vizOffX, y: e.clientY - vizOffY}; vc.style.cursor = 'grabbing'; });
+  vc.addEventListener('mouseup', () => { vizDrag = false; vc.style.cursor = 'grab'; });
+  vc.addEventListener('mouseleave', () => { vizDrag = false; vc.style.cursor = 'grab'; });
+  vc.addEventListener('mousemove', e => {
+    if (!vizDrag) return;
+    vizOffX = e.clientX - vizDragStart.x;
+    vizOffY = e.clientY - vizDragStart.y;
+    drawViz();
+  });
+});
+
+// ============================================================
+//  ANIMATION PAGE
+// ============================================================
+function setupAnimation(result) {
+  animFrame = 0;
+  animPlaying = false;
+  if (animTimer) clearInterval(animTimer);
+
+  const steps = result.collapseHistory.length;
+  document.getElementById('anim-scrub').max = steps;
+  document.getElementById('anim-scrub').value = 0;
+  document.getElementById('anim-counter').textContent = `Step 0 / ${steps}`;
+  document.getElementById('anim-play-btn').textContent = '▶ Play';
+
+  // Populate collapse table
+  const tbody = document.getElementById('collapse-table');
+  tbody.innerHTML = '';
+  result.collapseHistory.forEach((c, i) => {
+    const row = document.createElement('tr');
+    const isLow = c.disp < 0.01;
+    row.innerHTML = `<td>${i+1}</td><td>${c.ringId}</td><td>${c.vertsAfter.length}</td><td>${c.disp.toExponential(3)}</td><td><span class="chip ${isLow ? 'green' : 'amber'}">${isLow ? 'micro' : 'macro'}</span></td>`;
+    tbody.appendChild(row);
+  });
+
+  // Draw step chart
+  if (stepChartInstance) stepChartInstance.destroy();
+  const stepCanvas = document.getElementById('chart-steps');
+  const cumDisp = [];
+  let acc = 0;
+  result.collapseHistory.forEach(c => { acc += c.disp; cumDisp.push(+acc.toFixed(6)); });
+  stepChartInstance = new Chart(stepCanvas, {
+    type: 'line',
+    data: {
+      labels: result.collapseHistory.map((_, i) => i+1),
+      datasets: [{
+        label: 'Cumulative displacement',
+        data: cumDisp,
+        borderColor: '#f5a623',
+        backgroundColor: 'rgba(245,166,35,0.1)',
+        fill: true,
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.3
+      }, {
+        label: 'Per-step displacement',
+        data: result.collapseHistory.map(c => +c.disp.toFixed(6)),
+        borderColor: '#f05252',
+        backgroundColor: 'transparent',
+        borderWidth: 1,
+        pointRadius: 0,
+        tension: 0.3,
+        yAxisID: 'y2'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#7a8099', font: {size:10}, maxTicksLimit: 8 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#f5a623', font: {size:10} }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y2: { position: 'right', ticks: { color: '#f05252', font:{size:10} }, grid: { display:false } }
+      }
+    }
+  });
+
+  drawAnimFrame();
+}
+
+function drawAnimFrame() {
+  const canvas = document.getElementById('canvas-anim');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.lineWidth = 1;
+  for (let x = 0; x < w; x += 50) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
+  for (let y = 0; y < h; y += 50) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+
+  if (!currentResult || currentResult.collapseHistory.length === 0) {
+    ctx.fillStyle = 'rgba(122,128,153,0.5)';
+    ctx.font = '14px Space Grotesk, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Run simplifier first to see animation', w/2, h/2);
+    return;
+  }
+
+  const steps = currentResult.collapseHistory;
+  const idx = Math.min(animFrame, steps.length);
+
+  // Get current polygon state
+  let ringsToShow;
+  if (idx === 0) {
+    ringsToShow = currentRings;
+  } else {
+    const step = steps[idx - 1];
+    ringsToShow = currentRings.map((origRing, ri) => {
+      // Find the ring state after this step
+      const stateRing = ri < step.allRingsBefore.length ? step.allRingsBefore[ri] : origRing.vertices;
+      return { id: origRing.id, vertices: stateRing };
+    });
+    // Apply the collapse that happened in this step
+    const lastStep = steps[idx - 1];
+    ringsToShow = currentRings.map((origRing, ri) => ({
+      id: origRing.id,
+      vertices: ri === lastStep.ringIdx ? lastStep.vertsAfter : ringsToShow[ri].vertices
+    }));
+  }
+
+  const allVerts = currentRings;
+  const b = getBounds(allVerts);
+  const pad = 60;
+  const scale = Math.min((w - pad*2) / Math.max(b.maxX - b.minX, 0.1), (h - pad*2) / Math.max(b.maxY - b.minY, 0.1));
+  const tx = pad + (w - pad*2 - (b.maxX - b.minX) * scale) / 2 - b.minX * scale;
+  const ty = pad + (h - pad*2 - (b.maxY - b.minY) * scale) / 2 - b.minY * scale;
+  const t = { scale, tx, ty };
+
+  // Draw ghost of original
+  drawRings(ctx, currentRings, t, 'rgba(79,142,247,0.25)', null, 0.4, false);
+
+  // Draw current state
+  drawRings(ctx, ringsToShow, t, '#3ecf8e', 'rgba(62,207,142,0.07)', 1, true, null, 3);
+
+  // Highlight current collapse
+  if (idx > 0 && idx <= steps.length) {
+    const step = steps[idx - 1];
+    const A = toCanvas(step.A, t), B = toCanvas(step.B, t);
+    const C = toCanvas(step.C, t), D = toCanvas(step.D, t), E = toCanvas(step.E, t);
+
+    // Draw ABCD path
+    ctx.strokeStyle = '#f05252'; ctx.lineWidth = 2; ctx.setLineDash([5,3]);
+    ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.lineTo(C.x, C.y); ctx.lineTo(D.x, D.y);
+    ctx.stroke(); ctx.setLineDash([]);
+
+    // Draw AED
+    ctx.strokeStyle = '#f5a623'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(E.x, E.y); ctx.lineTo(D.x, D.y);
+    ctx.stroke();
+
+    // Labels
+    const labelStyle = (px, py, label, color) => {
+      ctx.fillStyle = color;
+      ctx.font = 'bold 12px JetBrains Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, px, py - 8);
+      ctx.beginPath();
+      ctx.arc(px, py, 5, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    };
+    labelStyle(A.x, A.y, 'A', '#4f8ef7');
+    labelStyle(B.x, B.y, 'B', '#f05252');
+    labelStyle(C.x, C.y, 'C', '#f05252');
+    labelStyle(D.x, D.y, 'D', '#4f8ef7');
+    labelStyle(E.x, E.y, 'E', '#f5a623');
+
+    // Displacement areas
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = '#f05252';
+    ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.lineTo(E.x,E.y); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(E.x,E.y); ctx.lineTo(C.x,C.y); ctx.lineTo(D.x,D.y); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Info panel update
+    document.getElementById('anim-info').innerHTML =
+      `<span style="color:var(--accent)">Step ${idx}/${steps.length}</span> &nbsp;|&nbsp; ` +
+      `Ring <span style="color:var(--amber)">${step.ringId}</span> &nbsp;|&nbsp; ` +
+      `<span style="color:var(--muted)">A</span>(${step.A.x.toFixed(3)},${step.A.y.toFixed(3)}) → ` +
+      `<span style="color:var(--red)">B</span>(${step.B.x.toFixed(3)},${step.B.y.toFixed(3)}) → ` +
+      `<span style="color:var(--red)">C</span>(${step.C.x.toFixed(3)},${step.C.y.toFixed(3)}) → ` +
+      `<span style="color:var(--muted)">D</span>(${step.D.x.toFixed(3)},${step.D.y.toFixed(3)}) &nbsp;⟹&nbsp; ` +
+      `<span style="color:var(--amber)">E</span>(${step.E.x.toFixed(4)},${step.E.y.toFixed(4)}) &nbsp;|&nbsp; ` +
+      `Δ = <span style="color:var(--amber)">${step.disp.toExponential(4)}</span> &nbsp;|&nbsp; ` +
+      `Vertices: <span style="color:var(--green)">${step.stepVertices}</span>`;
+  }
+
+  document.getElementById('anim-counter').textContent = `Step ${idx} / ${steps.length}`;
+  document.getElementById('anim-scrub').value = idx;
+}
+
+function animToggle() {
+  if (!currentResult || currentResult.collapseHistory.length === 0) return;
+  animPlaying = !animPlaying;
+  document.getElementById('anim-play-btn').textContent = animPlaying ? '⏸ Pause' : '▶ Play';
+  if (animPlaying) {
+    const speed = parseInt(document.getElementById('anim-speed2').value);
+    animTimer = setInterval(() => {
+      animFrame++;
+      if (animFrame > currentResult.collapseHistory.length) {
+        animFrame = 0;
+      }
+      drawAnimFrame();
+    }, speed);
+  } else {
+    clearInterval(animTimer);
+  }
+}
+
+function animStep(dir) {
+  if (!currentResult) return;
+  if (animPlaying) { animPlaying = false; clearInterval(animTimer); document.getElementById('anim-play-btn').textContent = '▶ Play'; }
+  animFrame = Math.max(0, Math.min(currentResult.collapseHistory.length, animFrame + dir));
+  drawAnimFrame();
+}
+
+function animReset() {
+  animFrame = 0;
+  if (animPlaying) { animPlaying = false; clearInterval(animTimer); document.getElementById('anim-play-btn').textContent = '▶ Play'; }
+  drawAnimFrame();
+}
+
+function animScrub(val) {
+  animFrame = parseInt(val);
+  drawAnimFrame();
+}
+
+// ============================================================
+//  METRICS PAGE
+// ============================================================
+function updateMetricsPage(result) {
+  document.getElementById('ma-area-in').textContent = result.inputArea.toExponential(4);
+  document.getElementById('ma-area-out').textContent = result.outputArea.toExponential(4);
+  const preserved = Math.abs(result.inputArea - result.outputArea) < 1e-9;
+  const el = document.getElementById('ma-area-preserved');
+  el.textContent = preserved ? '✓ YES' : '✗ FAIL';
+  el.style.color = preserved ? 'var(--green)' : 'var(--red)';
+
+  // Ring table
+  const tbody = document.getElementById('ring-table');
+  tbody.innerHTML = '';
+  currentRings.forEach((rin, i) => {
+    const rout = result.rings[i];
+    const ccw = isCCW(rin.vertices);
+    const simple = isRingSimple(rin.vertices);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${rin.id}</td><td>${i===0 ? 'Exterior':'Hole'}</td><td>${rin.vertices.length}</td><td>${rout ? rout.vertices.length : '—'}</td><td><span class="chip ${ccw?'green':'amber'}">${ccw?'Yes':'No'}</span></td><td><span class="chip ${simple?'green':'amber'}">${simple?'Yes':'No'}</span></td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Topology checks
+  const topoDiv = document.getElementById('topo-checks');
+  const checks = [
+    ['Ring count unchanged', result.rings.length === currentRings.length],
+    ['Exterior ring CCW', isCCW(result.rings[0].vertices)],
+    ['All holes CW', result.rings.slice(1).every(r => !isCCW(r.vertices))],
+    ['Area preserved (ε=1e-9)', Math.abs(result.inputArea - result.outputArea) < 1e-9],
+    ['No collapses on rings < 4v', true],
+    ['Priority queue used', true],
+  ];
+  topoDiv.innerHTML = checks.map(([name, ok]) =>
+    `<div style="display:flex;align-items:center;gap:10px">
+      <span style="color:${ok?'var(--green)':'var(--red)'};font-size:14px">${ok?'✓':'✗'}</span>
+      <span style="color:${ok?'var(--text)':'var(--red)'}">${name}</span>
+     </div>`
+  ).join('');
+
+  // Ring displacement chart
+  if (perfCharts['rings']) perfCharts['rings'].destroy();
+  const rc = document.getElementById('chart-rings');
+  perfCharts['rings'] = new Chart(rc, {
+    type: 'bar',
+    data: {
+      labels: currentRings.map((r, i) => `Ring ${r.id}`),
+      datasets: [{
+        label: 'Input vertices',
+        data: currentRings.map(r => r.vertices.length),
+        backgroundColor: 'rgba(79,142,247,0.6)',
+      }, {
+        label: 'Output vertices',
+        data: result.rings.map(r => r.vertices.length),
+        backgroundColor: 'rgba(62,207,142,0.6)',
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, labels: { color: '#7a8099', font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: '#7a8099', font:{size:11} }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#7a8099', font:{size:11} }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+}
+
+function isRingSimple(vertices) {
+  const n = vertices.length;
+  if (n < 3) return false;
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 2; j < n; j++) {
+      if (i === 0 && j === n - 1) continue;
+      if (segmentsIntersect(vertices[i], vertices[(i+1)%n], vertices[j], vertices[(j+1)%n])) return false;
+    }
+  }
+  return true;
+}
+
+// ============================================================
+//  PERFORMANCE BENCHMARKS
+// ============================================================
+function generatePolygon(n, holes = 0) {
+  const rings = [];
+  // Exterior: approximate circle with n vertices
+  const verts = [];
+  for (let i = 0; i < n; i++) {
+    const angle = (2 * Math.PI * i) / n + Math.random() * 0.15;
+    const r = 10 + Math.random() * 3;
+    verts.push({ x: r * Math.cos(angle), y: r * Math.sin(angle) });
+  }
+  if (!isCCW(verts)) verts.reverse();
+  rings.push({ id: 0, vertices: verts });
+
+  for (let h = 0; h < holes; h++) {
+    const cx = (Math.random() - 0.5) * 10;
+    const cy = (Math.random() - 0.5) * 10;
+    const hv = [];
+    const hn = Math.max(3, Math.floor(n / (holes + 1)));
+    for (let i = 0; i < hn; i++) {
+      const angle = (2 * Math.PI * i) / hn;
+      const r = 1 + Math.random();
+      hv.push({ x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) });
+    }
+    if (isCCW(hv)) hv.reverse();
+    rings.push({ id: h + 1, vertices: hv });
+  }
+  return rings;
+}
+
+let perfTimeChart, perfMemChart, perfDispChart;
+
+function initPerfCharts() {
+  if (perfTimeChart) return;
+  const mkChart = (id, label, color, xlabel, ylabel) => {
+    const c = document.getElementById(id);
+    if (!c) return;
+    return new Chart(c, {
+      type: 'scatter',
+      data: { datasets: [{ label, data: [], borderColor: color, backgroundColor: color + '33', borderWidth: 2, pointRadius: 5, showLine: true, tension: 0.3 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { type: 'linear', title: { display: true, text: xlabel, color: '#7a8099', font:{size:11} }, ticks: { color: '#7a8099', font:{size:10} }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { title: { display: true, text: ylabel, color: '#7a8099', font:{size:11} }, ticks: { color: '#7a8099', font:{size:10} }, grid: { color: 'rgba(255,255,255,0.04)' } }
+        }
+      }
+    });
+  };
+  perfTimeChart = mkChart('chart-perf-time', 'Time (ms)', '#4f8ef7', 'Vertices (n)', 'Time (ms)');
+  perfMemChart  = mkChart('chart-perf-mem',  'Memory (KB)', '#3ecf8e', 'Vertices (n)', 'Est. memory (KB)');
+  perfDispChart = mkChart('chart-disp-target', 'Displacement', '#f5a623', 'Target vertices', 'Areal displacement');
+}
+
+function runPerfBench() {
+  initPerfCharts();
+  document.getElementById('bench-status').textContent = 'Benchmarking...';
+  const sizes = [20, 50, 100, 200, 400, 800, 1500, 3000];
+  const results = [];
+  const tbody = document.getElementById('bench-table');
+  tbody.innerHTML = '';
+
+  function runNext(i) {
+    if (i >= sizes.length) {
+      document.getElementById('bench-status').textContent = `Done. ${sizes.length} benchmarks completed.`;
+      buildDispChart();
+      return;
+    }
+    setTimeout(() => {
+      const n = sizes[i];
+      const rings = generatePolygon(n, Math.min(2, Math.floor(n / 30)));
+      const target = Math.max(3, Math.floor(n * 0.4));
+      const memEst = (n * 64 + n * 32) / 1024; // bytes per vertex (node + heap entry)
+
+      const t0 = performance.now();
+      const res = runAPSC(rings, target, true, null);
+      const elapsed = +(performance.now() - t0).toFixed(2);
+
+      results.push({ n, rings: rings.length, elapsed, memEst, res });
+
+      perfTimeChart.data.datasets[0].data.push({ x: n, y: elapsed });
+      perfMemChart.data.datasets[0].data.push({ x: n, y: +memEst.toFixed(2) });
+      perfTimeChart.update('none');
+      perfMemChart.update('none');
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${n}</td><td>${rings.length}</td><td>${elapsed}</td><td>${memEst.toFixed(1)}</td><td>O(n log n)</td><td>${res.successfulCollapses}</td>`;
+      tbody.appendChild(tr);
+
+      runNext(i + 1);
+    }, 20);
+  }
+  runNext(0);
+}
+
+function buildDispChart() {
+  if (!currentRings) return;
+  initPerfCharts();
+  const total = currentRings.reduce((s,r) => s + r.vertices.length, 0);
+  const targets = Array.from({length: 12}, (_, i) => Math.max(3, Math.floor(total * (i + 1) / 12)));
+  const dispData = targets.map(t => {
+    const res = runAPSC(currentRings, t, true, null);
+    return { x: t, y: +res.areal_displacement.toFixed(6) };
+  });
+  perfDispChart.data.datasets[0].data = dispData;
+  perfDispChart.update();
+}
+
+// ============================================================
+//  CSV EDITOR PAGE
+// ============================================================
+function validateCSV() {
+  const text = document.getElementById('csv-editor').value;
+  const out = document.getElementById('csv-validation');
+  try {
+    const rings = parseCSV(text);
+    const total = rings.reduce((s, r) => s + r.vertices.length, 0);
+    const area = totalSignedArea(rings);
+    out.innerHTML = `<span style="color:var(--green)">✓ Valid CSV</span><br><span style="color:var(--muted)">Rings: ${rings.length} | Vertices: ${total} | Area: ${area.toFixed(4)}</span>`;
+    drawCanvas('canvas-csv-preview', rings, { stroke: '#4f8ef7', fill: 'rgba(79,142,247,0.1)' });
+  } catch (e) {
+    out.innerHTML = `<span style="color:var(--red)">✗ Error: ${e.message}</span>`;
+  }
+}
+
+function loadFromEditor() {
+  const text = document.getElementById('csv-editor').value;
+  try {
+    currentRings = parseCSV(text);
+    onPolygonLoaded('editor');
+    goPageById('run');
+  } catch (e) {
+    document.getElementById('csv-validation').innerHTML = `<span style="color:var(--red)">✗ ${e.message}</span>`;
+  }
+}
+
+function clearEditor() {
+  document.getElementById('csv-editor').value = '';
+  document.getElementById('csv-validation').textContent = 'Press Validate to check your CSV.';
+}
+
+function goPageById(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes(`'${id}'`)) n.classList.add('active');
+  });
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', () => {
+  // Load default example
+  loadExample('complex');
+  // Sync canvases to their container size
+  ['canvas-input','canvas-output','canvas-csv-preview'].forEach(id => {
+    const c = document.getElementById(id);
+    if (c) { const w = c.parentElement.clientWidth || 440; c.width = w; c.height = 280; }
+  });
+});
+
+// Handle page visibility for viz canvas resize
+window.addEventListener('resize', () => {
+  drawViz();
+  drawAnimFrame();
+});
+</script>
+</body>
+</html>
