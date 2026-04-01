@@ -1,51 +1,47 @@
-#pragma once
+﻿#pragma once
 
 #include <cstddef>
 #include <vector>
 
 namespace apsc {
 
-// Basic 2D point used throughout the project.
-struct Point {
-    double x {};
-    double y {};
-};
+    struct Point {
+        double x{};
+        double y{};
+    };
 
-// A ring is one closed boundary: ring 0 is the exterior, later rings are holes.
-struct Ring {
-    int ring_id {};
-    std::vector<Point> vertices;
-};
+    struct Segment {
+        Point a{};
+        Point b{};
+    };
 
-// The assignment polygon is represented as one exterior ring plus zero or more holes.
-struct Polygon {
-    std::vector<Ring> rings;
+    struct Ring {
+        int ring_id{};
+        std::vector<Point> vertices;
+    };
 
-    // Returns the total number of vertices across all rings.
-    [[nodiscard]] std::size_t total_vertices() const;
-};
+    struct Polygon {
+        std::vector<Ring> rings;
 
-// Convenience structure used by the intersection helpers.
-struct Segment {
-    Point a;
-    Point b;
-};
+        std::size_t total_vertices() const;
+    };
 
-// Shoelace-formula signed area. Exterior rings should be positive, holes negative.
-[[nodiscard]] double signed_area(const Ring& ring);
+    // Signed area of a single ring using the shoelace formula.
+    // Positive  → counter-clockwise (exterior ring convention).
+    // Negative  → clockwise (hole convention).
+    double signed_area(const Ring& ring);
 
-// Sum of the signed areas of all rings in the polygon.
-[[nodiscard]] double total_signed_area(const Polygon& polygon);
+    // Sum of signed areas across all rings (exterior positive, holes negative).
+    double total_signed_area(const Polygon& polygon);
 
-// Orientation helpers used to normalize and validate input/output rings.
-[[nodiscard]] bool is_counter_clockwise(const Ring& ring);
-[[nodiscard]] bool is_clockwise(const Ring& ring);
+    bool is_counter_clockwise(const Ring& ring);
+    bool is_clockwise(const Ring& ring);
 
-// True when a ring has no self-intersections.
-[[nodiscard]] bool ring_is_simple(const Ring& ring);
+    // Returns true when a ring has no self-intersections.
+    bool ring_is_simple(const Ring& ring);
 
-// Checks the project-level topology rules: valid ring orientation, no self-crossing,
-// holes inside the exterior ring, and no ring-ring intersections.
-[[nodiscard]] bool polygon_topology_is_valid(const Polygon& polygon);
+    // Full OGC-style topology check: each ring must be simple, exterior CCW,
+    // holes CW, every hole lies inside the exterior, and no two rings intersect.
+    bool polygon_topology_is_valid(const Polygon& polygon);
 
 }  // namespace apsc
