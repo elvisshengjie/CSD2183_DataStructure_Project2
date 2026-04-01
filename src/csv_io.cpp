@@ -22,6 +22,16 @@ std::string trim(const std::string& value) {
     return value.substr(begin, end - begin + 1);
 }
 
+std::string format_coordinate(double value) {
+    if (std::abs(value) < 5e-13) {
+        value = 0.0;
+    }
+
+    std::ostringstream formatter;
+    formatter << std::setprecision(10) << std::defaultfloat << value;
+    return formatter.str();
+}
+
 // The assignment guarantees the orientation convention, but normalizing here makes the
 // rest of the code simpler and more robust to slightly inconsistent input files.
 void normalize_ring_orientation(Polygon& polygon) {
@@ -126,13 +136,13 @@ void write_polygon_csv(
     double output_area,
     double areal_displacement) {
     out << "ring_id,vertex_id,x,y\n";
-    out << std::setprecision(15) << std::defaultfloat;
-
     // The assignment expects rows grouped by ring and vertex ids restarted from 0.
     for (const Ring& ring : polygon.rings) {
         for (std::size_t vertex_id = 0; vertex_id < ring.vertices.size(); ++vertex_id) {
             const Point& point = ring.vertices[vertex_id];
-            out << ring.ring_id << ',' << vertex_id << ',' << point.x << ',' << point.y << '\n';
+            out << ring.ring_id << ',' << vertex_id << ','
+                << format_coordinate(point.x) << ','
+                << format_coordinate(point.y) << '\n';
         }
     }
 
