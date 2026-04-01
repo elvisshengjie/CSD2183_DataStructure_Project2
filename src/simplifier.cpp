@@ -189,10 +189,10 @@ std::optional<Point> compute_apsc_point(
     if (same_side) {
         const double dist_b = dist_to_line(b, a, d);
         const double dist_c = dist_to_line(c, a, d);
-        if (dist_b > dist_c + kEpsilon) {
-            return choose_intersection(false);
+        if (dist_b + kEpsilon >= dist_c) {
+            return choose_intersection(true);
         }
-        return choose_intersection(true);
+        return choose_intersection(false);
     }
 
     Point point_on_e_line;
@@ -281,6 +281,25 @@ bool check_candidate_topology(
     return true;
 }
 
+Polygon apply_candidate_to_polygon(
+    const Polygon& polygon,
+    const CollapseCandidate& candidate,
+    const std::size_t b_idx,
+    const std::size_t c_idx) {
+    Polygon collapsed = polygon;
+    Ring& ring = collapsed.rings[static_cast<std::size_t>(candidate.ring_id)];
+    const std::size_t remove_high = std::max(b_idx, c_idx);
+    const std::size_t remove_low = std::min(b_idx, c_idx);
+
+    ring.vertices.erase(ring.vertices.begin() + static_cast<std::ptrdiff_t>(remove_high));
+    ring.vertices.erase(ring.vertices.begin() + static_cast<std::ptrdiff_t>(remove_low));
+    ring.vertices.insert(
+        ring.vertices.begin() + static_cast<std::ptrdiff_t>(remove_low),
+        candidate.replacement_point);
+
+    return collapsed;
+}
+
 struct QueueEntry {
     double cost {};
     double replacement_y {};
@@ -352,7 +371,7 @@ SimplificationResult Simplifier::simplify(
     auto push_candidate = [&](const int ring_id, const std::size_t start_index) {
         const Ring& ring = rings[ring_id];
         const std::size_t n = ring.vertices.size();
-        if (n < 4) {
+        if (n <= 4) {
             return;
         }
 
@@ -411,7 +430,7 @@ SimplificationResult Simplifier::simplify(
 
         Ring& ring = rings[static_cast<std::size_t>(candidate.ring_id)];
         const std::size_t n = ring.vertices.size();
-        if (n < 4) {
+        if (n <= 4) {
             continue;
         }
 
@@ -517,7 +536,7 @@ std::vector<CollapseCandidate> Simplifier::build_initial_candidates(
     std::vector<CollapseCandidate> candidates;
 
     for (const Ring& ring : polygon.rings) {
-        if (ring.vertices.size() < 4) {
+        if (ring.vertices.size() <= 4) {
             continue;
         }
         for (std::size_t start_index = 0; start_index < ring.vertices.size();
@@ -535,7 +554,7 @@ std::optional<CollapseCandidate> Simplifier::compute_candidate(
     const Ring& ring,
     const std::size_t start_index) const {
     const std::size_t n = ring.vertices.size();
-    if (n < 4) {
+    if (n <= 4) {
         return std::nullopt;
     }
 
@@ -572,7 +591,7 @@ bool Simplifier::candidate_is_topology_safe(
     }
 
     const Ring& ring = polygon.rings[static_cast<std::size_t>(candidate.ring_id)];
-    if (ring.vertices.size() < 4) {
+    if (ring.vertices.size() <= 4) {
         return false;
     }
 
@@ -583,14 +602,16 @@ bool Simplifier::candidate_is_topology_safe(
     const std::size_t d = (a + 3) % n;
 
     return check_candidate_topology(
-        polygon,
-        candidate,
-        ring,
-        a,
-        b,
-        c,
-        d,
-        candidate.replacement_point);
+               polygon,
+               candidate,
+               ring,
+               a,
+               b,
+               c,
+               d,
+               candidate.replacement_point) &&
+           (polygon.rings.size() == 1 ||
+            polygon_topology_is_valid(apply_candidate_to_polygon(polygon, candidate, b, c)));
 }
 
 }  // namespace apsc
