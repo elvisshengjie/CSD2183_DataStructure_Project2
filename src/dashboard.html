@@ -211,6 +211,10 @@
     <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     About / Algorithm
   </div>
+  <div class="nav-item" onclick="goPage('testrunner')">
+    <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    Test Runner
+  </div>
 </nav>
 
 <!-- MAIN CONTENT -->
@@ -622,6 +626,114 @@
     <div class="metric-card">
       <div class="metric-label">Implementation</div>
       <div style="font-size:13px;color:var(--text);margin-top:6px;line-height:1.6">C++17 (simplifier.cpp) + JavaScript (this dashboard)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PAGE: TEST RUNNER ===== -->
+<div class="page" id="page-testrunner">
+  <div class="page-header">
+    <div class="page-title">Test Runner</div>
+    <div class="page-sub">Run the C++ simplifier on CSV files from <code style="font-family:var(--mono);font-size:12px;background:var(--bg3);padding:2px 6px;border-radius:3px">tests/data/</code> and compare results</div>
+  </div>
+
+  <!-- Status banner -->
+  <div id="tr-banner" style="display:none;padding:10px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-family:var(--mono)"></div>
+
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">Test Files</div>
+      <div class="control-row">
+        <button class="btn sm green" onclick="trRefreshFiles()">↺ Refresh file list</button>
+        <button class="btn sm" onclick="trRunAll()">▶ Run All</button>
+        <span style="font-size:12px;color:var(--muted)" id="tr-file-count">—</span>
+      </div>
+      <div style="max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:6px">
+        <table style="font-size:12px">
+          <thead><tr><th>File</th><th>Size</th><th>Action</th></tr></thead>
+          <tbody id="tr-file-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Run Settings</div>
+      <div style="display:grid;gap:14px">
+        <div>
+          <label style="display:block;margin-bottom:6px">Target vertices: <strong id="tr-target-label" style="color:var(--accent)">10</strong></label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="range" id="tr-target-slider" min="3" max="200" value="10" style="flex:1" oninput="trSyncTarget()">
+            <input type="number" id="tr-target-num" value="10" min="3" max="9999" style="width:70px" oninput="trSyncTargetNum()">
+          </div>
+        </div>
+        <div>
+          <label style="display:block;margin-bottom:6px">Selected file</label>
+          <div id="tr-selected-file" style="font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--bg3);padding:8px 10px;border-radius:6px;border:1px solid var(--border)">None selected</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn green pulse" id="tr-run-btn" onclick="trRunSelected()">▶ Run Selected</button>
+          <button class="btn" onclick="trShowInputCSV()">👁 View Input CSV</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="metric-grid" id="tr-metrics" style="display:none;margin-bottom:16px">
+    <div class="metric-card">
+      <div class="metric-label">Input Vertices</div>
+      <div class="metric-value blue" id="tr-m-in">—</div>
+      <div class="metric-sub">from CSV file</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Output Vertices</div>
+      <div class="metric-value green" id="tr-m-out">—</div>
+      <div class="metric-sub">after simplify</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Areal Displacement</div>
+      <div class="metric-value amber" id="tr-m-disp">—</div>
+      <div class="metric-sub">signed area delta</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Runtime</div>
+      <div class="metric-value teal" id="tr-m-time">—</div>
+      <div class="metric-sub">wall clock ms</div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:16px" id="tr-canvas-section" style="display:none">
+    <div class="card">
+      <div class="card-title">Input Polygon</div>
+      <div class="canvas-wrap">
+        <canvas id="canvas-tr-input" class="poly" width="440" height="280"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Output Polygon (C++ result)</div>
+      <div class="canvas-wrap">
+        <canvas id="canvas-tr-output" class="poly" width="440" height="280"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Simplifier Output / Log</div>
+    <div class="control-row">
+      <button class="btn sm" onclick="trCopyOutput()">Copy output</button>
+      <button class="btn sm" onclick="trDownloadOutput()">Download CSV</button>
+    </div>
+    <textarea id="tr-output-text" rows="14" style="width:100%;background:var(--bg);color:var(--muted)" readonly placeholder="Run a test to see the raw simplifier output here..."></textarea>
+  </div>
+
+  <!-- Batch run results -->
+  <div class="card" id="tr-batch-card" style="display:none">
+    <div class="card-title">Batch Run Results</div>
+    <div style="max-height:320px;overflow-y:auto">
+      <table>
+        <thead><tr><th>File</th><th>Target</th><th>In Verts</th><th>Out Verts</th><th>Displacement</th><th>Time (ms)</th><th>Status</th></tr></thead>
+        <tbody id="tr-batch-table"></tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -2023,6 +2135,253 @@ function goPageById(id) {
 // ============================================================
 //  INIT
 // ============================================================
+// ============================================================
+//  TEST RUNNER PAGE
+// ============================================================
+
+let trSelectedFile = null;
+let trLastResult = null;
+
+function trSyncTarget() {
+  const v = document.getElementById('tr-target-slider').value;
+  document.getElementById('tr-target-num').value = v;
+  document.getElementById('tr-target-label').textContent = v;
+}
+function trSyncTargetNum() {
+  const v = document.getElementById('tr-target-num').value;
+  document.getElementById('tr-target-slider').value = v;
+  document.getElementById('tr-target-label').textContent = v;
+}
+
+function trBanner(msg, color) {
+  const el = document.getElementById('tr-banner');
+  el.style.display = 'block';
+  el.style.background = color === 'green' ? 'rgba(62,207,142,0.1)' :
+                        color === 'red'   ? 'rgba(240,82,82,0.1)' :
+                                            'rgba(79,142,247,0.1)';
+  el.style.color = color === 'green' ? 'var(--green)' :
+                   color === 'red'   ? 'var(--red)' :
+                                       'var(--accent)';
+  el.style.border = '1px solid ' + (color === 'green' ? 'rgba(62,207,142,0.3)' :
+                                     color === 'red'   ? 'rgba(240,82,82,0.3)' :
+                                                         'rgba(79,142,247,0.3)');
+  el.textContent = msg;
+}
+
+async function trRefreshFiles() {
+  trBanner('Loading file list from server...', 'blue');
+  try {
+    const res = await fetch('/api/list-tests');
+    if (!res.ok) throw new Error('Server returned ' + res.status);
+    const files = await res.json();
+    const tbody = document.getElementById('tr-file-table');
+    tbody.innerHTML = '';
+    if (files.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3" style="color:var(--muted);text-align:center;padding:16px">No CSV files found in tests/data/</td></tr>';
+      document.getElementById('tr-file-count').textContent = '0 files found';
+      trBanner('No CSV files found in tests/data/ — make sure the folder exists.', 'red');
+      return;
+    }
+    for (const f of files) {
+      const tr = document.createElement('tr');
+      tr.style.cursor = 'pointer';
+      tr.innerHTML = `<td style="color:var(--text)">${f.rel}</td>
+        <td style="color:var(--muted)">${(f.bytes/1024).toFixed(1)} KB</td>
+        <td><button class="btn sm" onclick="trSelectFile(${JSON.stringify(f.rel)},this)">Select</button></td>`;
+      tbody.appendChild(tr);
+    }
+    document.getElementById('tr-file-count').textContent = files.length + ' file(s) found';
+    trBanner('Found ' + files.length + ' CSV test file(s). Select one and press Run.', 'green');
+  } catch(e) {
+    trBanner('Failed to reach server API: ' + e.message + '. Is dashboard_server running?', 'red');
+  }
+}
+
+function trSelectFile(rel, btn) {
+  trSelectedFile = rel;
+  document.getElementById('tr-selected-file').textContent = rel;
+  // Highlight selected row
+  document.querySelectorAll('#tr-file-table tr').forEach(tr => tr.style.background = '');
+  if (btn) btn.closest('tr').style.background = 'rgba(79,142,247,0.08)';
+}
+
+async function trShowInputCSV() {
+  if (!trSelectedFile) { trBanner('Select a file first.', 'red'); return; }
+  try {
+    const res = await fetch('/api/get-file?f=' + encodeURIComponent(trSelectedFile));
+    if (!res.ok) throw new Error(res.status);
+    const text = await res.text();
+    document.getElementById('tr-output-text').value = text;
+    // Preview on input canvas
+    try {
+      const rings = parseCSV(text);
+      const c = document.getElementById('canvas-tr-input');
+      c.parentElement.parentElement.style.display = '';
+      drawCanvas('canvas-tr-input', rings, { stroke: '#4f8ef7', fill: 'rgba(79,142,247,0.1)' });
+      drawCanvas('canvas-tr-output', [], {});
+      document.getElementById('tr-canvas-section').style.display = '';
+    } catch(e) { /* ignore preview errors */ }
+    trBanner('Showing raw input CSV for: ' + trSelectedFile, 'blue');
+  } catch(e) {
+    trBanner('Could not load file: ' + e.message, 'red');
+  }
+}
+
+async function trRunSelected() {
+  if (!trSelectedFile) { trBanner('Select a test file first.', 'red'); return; }
+  const target = parseInt(document.getElementById('tr-target-num').value);
+  if (isNaN(target) || target < 3) { trBanner('Target must be >= 3.', 'red'); return; }
+
+  const btn = document.getElementById('tr-run-btn');
+  btn.textContent = '⏳ Running...';
+  btn.disabled = true;
+  trBanner('Running simplifier on ' + trSelectedFile + ' with target=' + target + '...', 'blue');
+
+  try {
+    const res = await fetch('/api/run-test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: trSelectedFile, target })
+    });
+    const data = await res.json();
+    trLastResult = data;
+    trDisplayResult(data, trSelectedFile, target);
+  } catch(e) {
+    trBanner('Request failed: ' + e.message + '. Make sure dashboard_server is running.', 'red');
+  } finally {
+    btn.textContent = '▶ Run Selected';
+    btn.disabled = false;
+  }
+}
+
+function trDisplayResult(data, filename, target) {
+  // Show metrics
+  document.getElementById('tr-metrics').style.display = '';
+  document.getElementById('tr-m-in').textContent   = data.input_vertices  ?? '—';
+  document.getElementById('tr-m-out').textContent  = data.output_vertices ?? '—';
+  document.getElementById('tr-m-disp').textContent = data.areal_displacement != null
+      ? data.areal_displacement.toExponential(4) : '—';
+  document.getElementById('tr-m-time').textContent = data.elapsed_ms_real != null
+      ? data.elapsed_ms_real.toFixed(1) + ' ms' : '—';
+
+  // Show raw output
+  document.getElementById('tr-output-text').value = data.stdout || data.stderr || '(no output)';
+
+  if (data.ok) {
+    trBanner('✓ Simplifier succeeded — ' + (data.input_vertices||0) + ' → ' + (data.output_vertices||0) + ' vertices in ' + (data.elapsed_ms_real||0).toFixed(1) + ' ms', 'green');
+
+    // Visualise input and output
+    try {
+      // Load input CSV from server to draw input
+      fetch('/api/get-file?f=' + encodeURIComponent(filename))
+        .then(r => r.text())
+        .then(text => {
+          const rings = parseCSV(text);
+          drawCanvas('canvas-tr-input', rings, { stroke: '#4f8ef7', fill: 'rgba(79,142,247,0.1)' });
+        }).catch(() => {});
+
+      if (data.csv_output) {
+        const outRings = parseCSV(data.csv_output);
+        drawCanvas('canvas-tr-output', outRings, { stroke: '#3ecf8e', fill: 'rgba(62,207,142,0.07)' });
+      }
+      document.getElementById('tr-canvas-section').style.display = '';
+    } catch(e) {}
+  } else {
+    trBanner('✗ Simplifier exited with code ' + data.exit_code + '. See log below.', 'red');
+    document.getElementById('tr-output-text').value =
+      'STDERR:\n' + (data.stderr || '') + '\n\nSTDOUT:\n' + (data.stdout || '');
+  }
+}
+
+async function trRunAll() {
+  // Collect all files from the table
+  const rows = document.querySelectorAll('#tr-file-table tr');
+  const files = [];
+  rows.forEach(tr => {
+    const cells = tr.querySelectorAll('td');
+    if (cells.length >= 1 && cells[0].textContent.trim()) {
+      files.push(cells[0].textContent.trim());
+    }
+  });
+  if (files.length === 0) {
+    trBanner('No files loaded — press Refresh first.', 'red'); return;
+  }
+  const target = parseInt(document.getElementById('tr-target-num').value) || 10;
+
+  document.getElementById('tr-batch-card').style.display = '';
+  const tbody = document.getElementById('tr-batch-table');
+  tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted)">Running…</td></tr>';
+
+  const results = [];
+  for (const file of files) {
+    trBanner('Running: ' + file + ' …', 'blue');
+    try {
+      const res = await fetch('/api/run-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file, target })
+      });
+      const data = await res.json();
+      results.push({ file, target, data });
+    } catch(e) {
+      results.push({ file, target, data: { ok: false, stderr: e.message } });
+    }
+  }
+
+  // Render table
+  tbody.innerHTML = '';
+  for (const r of results) {
+    const d = r.data;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--text)">${r.file}</td>
+      <td>${r.target}</td>
+      <td>${d.input_vertices ?? '—'}</td>
+      <td>${d.output_vertices ?? '—'}</td>
+      <td>${d.areal_displacement != null ? d.areal_displacement.toExponential(4) : '—'}</td>
+      <td>${d.elapsed_ms_real != null ? d.elapsed_ms_real.toFixed(1) : '—'}</td>
+      <td><span class="chip ${d.ok ? 'green' : 'amber'}">${d.ok ? 'PASS' : 'FAIL'}</span></td>`;
+    tbody.appendChild(tr);
+  }
+
+  const passed = results.filter(r => r.data.ok).length;
+  trBanner(`Batch complete: ${passed}/${results.length} passed.`, passed === results.length ? 'green' : 'red');
+}
+
+function trCopyOutput() {
+  const text = document.getElementById('tr-output-text').value;
+  navigator.clipboard.writeText(text).catch(() => {});
+}
+
+function trDownloadOutput() {
+  if (!trLastResult || !trLastResult.stdout) return;
+  const blob = new Blob([trLastResult.stdout], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'simplified_output.csv';
+  a.click();
+}
+
+// Auto-load file list when navigating to test runner page
+const _origGoPage = typeof goPage === 'function' ? goPage : null;
+// Override goPage to auto-refresh
+function goPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const page = document.getElementById('page-' + id);
+  if (page) page.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes(`'${id}'`)) n.classList.add('active');
+  });
+  // Auto-load test files
+  if (id === 'testrunner') {
+    trRefreshFiles();
+  }
+  // Trigger other page-specific actions
+  if (id === 'viz') drawViz();
+  if (id === 'anim') drawAnimFrame();
+}
+
 window.addEventListener('load', () => {
   // Load default example
   loadExample('complex');
