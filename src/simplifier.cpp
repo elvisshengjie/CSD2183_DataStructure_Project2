@@ -58,6 +58,24 @@ bool segments_intersect(
            (std::abs(d4) < kEpsilon && point_on_segment(b2, a1, a2));
 }
 
+bool segment_bounding_boxes_overlap(
+    const Point& a1,
+    const Point& a2,
+    const Point& b1,
+    const Point& b2) {
+    const double a_min_x = std::min(a1.x, a2.x) - kEpsilon;
+    const double a_max_x = std::max(a1.x, a2.x) + kEpsilon;
+    const double a_min_y = std::min(a1.y, a2.y) - kEpsilon;
+    const double a_max_y = std::max(a1.y, a2.y) + kEpsilon;
+    const double b_min_x = std::min(b1.x, b2.x) - kEpsilon;
+    const double b_max_x = std::max(b1.x, b2.x) + kEpsilon;
+    const double b_min_y = std::min(b1.y, b2.y) - kEpsilon;
+    const double b_max_y = std::max(b1.y, b2.y) + kEpsilon;
+
+    return a_min_x <= b_max_x && b_min_x <= a_max_x &&
+           a_min_y <= b_max_y && b_min_y <= a_max_y;
+}
+
 double point_side_of_line(const Point& point, const Point& a, const Point& b) {
     return cross(a, b, point);
 }
@@ -227,22 +245,6 @@ bool check_candidate_topology(
     const Point& a = ring.vertices[a_idx];
     const Point& d = ring.vertices[d_idx];
 
-    Ring candidate_ring;
-    candidate_ring.ring_id = ring.ring_id;
-    for (std::size_t i = 0; i < ring.vertices.size(); ++i) {
-        if (i == b_idx) {
-            candidate_ring.vertices.push_back(replacement);
-        }
-        if (i == b_idx || i == c_idx) {
-            continue;
-        }
-        candidate_ring.vertices.push_back(ring.vertices[i]);
-    }
-
-    if (candidate_ring.vertices.size() < 3 || !ring_is_simple(candidate_ring)) {
-        return false;
-    }
-
     for (std::size_t ring_index = 0; ring_index < polygon.rings.size(); ++ring_index) {
         const Ring& test_ring = polygon.rings[ring_index];
         const std::size_t n = test_ring.vertices.size();
@@ -265,10 +267,12 @@ bool check_candidate_topology(
                 }
             }
 
-            if (segments_intersect(a, replacement, p1, p2)) {
+            if (segment_bounding_boxes_overlap(a, replacement, p1, p2) &&
+                segments_intersect(a, replacement, p1, p2)) {
                 return false;
             }
-            if (segments_intersect(replacement, d, p1, p2)) {
+            if (segment_bounding_boxes_overlap(replacement, d, p1, p2) &&
+                segments_intersect(replacement, d, p1, p2)) {
                 return false;
             }
         }
