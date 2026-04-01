@@ -25,6 +25,22 @@ bool same_point(const Point& lhs, const Point& rhs) {
     return nearly_equal(lhs.x, rhs.x) && nearly_equal(lhs.y, rhs.y);
 }
 
+std::size_t candidate_seed_stride(const std::size_t ring_vertices) {
+    if (ring_vertices > 200000) {
+        return 2048;
+    }
+    if (ring_vertices > 50000) {
+        return 128;
+    }
+    if (ring_vertices > 20000) {
+        return 16;
+    }
+    if (ring_vertices > 8000) {
+        return 4;
+    }
+    return 1;
+}
+
 bool point_on_segment(const Point& point, const Point& a, const Point& b) {
     return std::min(a.x, b.x) - kEpsilon <= point.x &&
            point.x <= std::max(a.x, b.x) + kEpsilon &&
@@ -300,16 +316,152 @@ Polygon apply_candidate_to_polygon(
     return collapsed;
 }
 
+struct Node {
+    Point point {};
+    int prev {-1};
+    int next {-1};
+    int ring_id {-1};
+    double order_label {};
+    bool alive {false};
+    bool fixed {false};
+};
+
+struct RingState {
+    int ring_id {-1};
+    int anchor {-1};
+    double max_label {};
+    std::size_t size {};
+};
+
+struct EdgeRecord {
+    Point a {};
+    Point b {};
+    int from {-1};
+    int to {-1};
+    int ring_id {-1};
+    bool active {false};
+};
+
+class SegmentGrid {
+public:
+    explicit SegmentGrid(double cell_size)
+        : cell_size_(std::max(cell_size, 1e-6)) {}
+
+    void ensure_capacity(const std::size_t edge_count) {
+        if (visited_.size() < edge_count) {
+            visited_.resize(edge_count, 0);
+        }
+    }
+
+    void add_edge(const int edge_id, const Point& a, const Point& b) {
+        ensure_capacity(static_cast<std::size_t>(edge_id) + 1);
+        const auto [min_x, max_x, min_y, max_y] = segment_bounds(a, b);
+        const int cell_min_x = to_cell(min_x);
+        const int cell_max_x = to_cell(max_x);
+        const int cell_min_y = to_cell(min_y);
+        const int cell_max_y = to_cell(max_y);
+
+        for (int x = cell_min_x; x <= cell_max_x; ++x) {
+            for (int y = cell_min_y; y <= cell_max_y; ++y) {
+                cells_[pack_cell(x, y)].push_back(edge_id);
+            }
+        }
+    }
+
+    template <typename EdgeFilter>
+    bool any_intersection(
+        const Point& a,
+        const Point& b,
+        const std::vector<EdgeRecord>& edges,
+        EdgeFilter&& should_skip) {
+        if (visited_.empty()) {
+            return false;
+        }
+
+        ++query_stamp_;
+        if (query_stamp_ == 0) {
+            std::fill(visited_.begin(), visited_.end(), 0);
+            query_stamp_ = 1;
+        }
+
+        const auto [min_x, max_x, min_y, max_y] = segment_bounds(a, b);
+        const int cell_min_x = to_cell(min_x);
+        const int cell_max_x = to_cell(max_x);
+        const int cell_min_y = to_cell(min_y);
+        const int cell_max_y = to_cell(max_y);
+
+        for (int x = cell_min_x; x <= cell_max_x; ++x) {
+            for (int y = cell_min_y; y <= cell_max_y; ++y) {
+                const auto cell_it = cells_.find(pack_cell(x, y));
+                if (cell_it == cells_.end()) {
+                    continue;
+                }
+
+                for (const int edge_id : cell_it->second) {
+                    if (edge_id < 0 ||
+                        static_cast<std::size_t>(edge_id) >= edges.size()) {
+                        continue;
+                    }
+                    if (visited_[static_cast<std::size_t>(edge_id)] == query_stamp_) {
+                        continue;
+                    }
+                    visited_[static_cast<std::size_t>(edge_id)] = query_stamp_;
+
+                    const EdgeRecord& edge = edges[static_cast<std::size_t>(edge_id)];
+                    if (!edge.active || should_skip(edge)) {
+                        continue;
+                    }
+
+                    if (!segment_bounding_boxes_overlap(a, b, edge.a, edge.b)) {
+                        continue;
+                    }
+                    if (segments_intersect(a, b, edge.a, edge.b)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+private:
+    static std::tuple<double, double, double, double> segment_bounds(
+        const Point& a,
+        const Point& b) {
+        return {
+            std::min(a.x, b.x) - kEpsilon,
+            std::max(a.x, b.x) + kEpsilon,
+            std::min(a.y, b.y) - kEpsilon,
+            std::max(a.y, b.y) + kEpsilon,
+        };
+    }
+
+    int to_cell(const double value) const {
+        return static_cast<int>(std::floor(value / cell_size_));
+    }
+
+    static long long pack_cell(const int x, const int y) {
+        return (static_cast<long long>(x) << 32) ^
+               static_cast<unsigned int>(y);
+    }
+
+    double cell_size_ {};
+    unsigned int query_stamp_ {};
+    std::unordered_map<long long, std::vector<int>> cells_;
+    std::vector<unsigned int> visited_;
+};
+
 struct QueueEntry {
     double cost {};
     double replacement_y {};
-    std::size_t start_index {};
+    double start_order {};
+    int a_node {-1};
+    int b_node {-1};
+    int c_node {-1};
+    int d_node {-1};
     std::size_t sequence {};
-    int ring_id {};
-    int id_a {};
-    int id_b {};
-    int id_c {};
-    int id_d {};
+    int ring_id {-1};
 
     bool operator>(const QueueEntry& other) const {
         if (cost != other.cost) {
@@ -318,8 +470,8 @@ struct QueueEntry {
         if (replacement_y != other.replacement_y) {
             return replacement_y > other.replacement_y;
         }
-        if (start_index != other.start_index) {
-            return start_index < other.start_index;
+        if (start_order != other.start_order) {
+            return start_order < other.start_order;
         }
         return sequence > other.sequence;
     }
@@ -350,74 +502,376 @@ SimplificationResult Simplifier::simplify(
         return result;
     }
 
-    std::vector<Ring> rings = input.rings;
-    std::vector<std::vector<int>> node_ids(rings.size());
-    std::vector<std::unordered_map<int, std::size_t>> node_positions(rings.size());
-    std::vector<int> fixed_node_ids(rings.size());
-    int next_node_id = 0;
-    for (std::size_t ring_index = 0; ring_index < rings.size(); ++ring_index) {
-        node_ids[ring_index].resize(rings[ring_index].vertices.size());
-        for (std::size_t i = 0; i < rings[ring_index].vertices.size(); ++i) {
-            node_ids[ring_index][i] = next_node_id++;
-            node_positions[ring_index][node_ids[ring_index][i]] = i;
+    double min_x = input.rings.front().vertices.front().x;
+    double max_x = min_x;
+    double min_y = input.rings.front().vertices.front().y;
+    double max_y = min_y;
+    double perimeter_sum = 0.0;
+    for (const Ring& ring : input.rings) {
+        for (std::size_t i = 0; i < ring.vertices.size(); ++i) {
+            const Point& current = ring.vertices[i];
+            const Point& next = ring.vertices[(i + 1) % ring.vertices.size()];
+            min_x = std::min(min_x, current.x);
+            max_x = std::max(max_x, current.x);
+            min_y = std::min(min_y, current.y);
+            max_y = std::max(max_y, current.y);
+            perimeter_sum += std::hypot(next.x - current.x, next.y - current.y);
         }
-        fixed_node_ids[ring_index] = node_ids[ring_index].front();
+    }
+    const double avg_edge_length =
+        perimeter_sum / static_cast<double>(std::max<std::size_t>(current_vertices, 1));
+    const double span = std::max(max_x - min_x, max_y - min_y);
+    const double cell_size = std::max({
+        avg_edge_length * 4.0,
+        span / 512.0,
+        1e-6,
+    });
+
+    std::vector<Node> nodes;
+    nodes.reserve(current_vertices + (current_vertices - target_vertices));
+    std::vector<RingState> rings(input.rings.size());
+    std::vector<EdgeRecord> edges;
+    edges.reserve(current_vertices + (current_vertices - target_vertices));
+    SegmentGrid grid(cell_size);
+    std::size_t dirty_edge_updates = 0;
+
+    auto append_node =
+        [&](const Point& point, const int ring_id, const bool fixed, const double order_label) {
+            nodes.push_back(Node {point, -1, -1, ring_id, order_label, true, fixed});
+        edges.push_back(EdgeRecord {});
+        grid.ensure_capacity(edges.size());
+        return static_cast<int>(nodes.size() - 1);
+    };
+
+    for (std::size_t ring_index = 0; ring_index < input.rings.size(); ++ring_index) {
+        const Ring& input_ring = input.rings[ring_index];
+        RingState& ring = rings[ring_index];
+        ring.ring_id = input_ring.ring_id;
+        ring.size = input_ring.vertices.size();
+
+        std::vector<int> ring_nodes;
+        ring_nodes.reserve(input_ring.vertices.size());
+        for (std::size_t i = 0; i < input_ring.vertices.size(); ++i) {
+            ring_nodes.push_back(append_node(
+                input_ring.vertices[i],
+                static_cast<int>(ring_index),
+                i == 0,
+                static_cast<double>(i)));
+        }
+
+        const std::size_t ring_size = ring_nodes.size();
+        ring.anchor = ring_nodes.front();
+        ring.max_label = static_cast<double>(ring_size - 1);
+        for (std::size_t i = 0; i < ring_size; ++i) {
+            const int node_id = ring_nodes[i];
+            nodes[static_cast<std::size_t>(node_id)].prev =
+                ring_nodes[(i + ring_size - 1) % ring_size];
+            nodes[static_cast<std::size_t>(node_id)].next =
+                ring_nodes[(i + 1) % ring_size];
+        }
+
+        for (const int node_id : ring_nodes) {
+            const int next_id = nodes[static_cast<std::size_t>(node_id)].next;
+            edges[static_cast<std::size_t>(node_id)] = EdgeRecord {
+                nodes[static_cast<std::size_t>(node_id)].point,
+                nodes[static_cast<std::size_t>(next_id)].point,
+                node_id,
+                next_id,
+                static_cast<int>(ring_index),
+                true,
+            };
+            grid.add_edge(
+                node_id,
+                nodes[static_cast<std::size_t>(node_id)].point,
+                nodes[static_cast<std::size_t>(next_id)].point);
+        }
     }
 
     std::priority_queue<QueueEntry, std::vector<QueueEntry>, std::greater<QueueEntry>>
         heap;
     std::size_t sequence = 0;
 
-    auto push_candidate = [&](const int ring_id, const std::size_t start_index) {
-        const Ring& ring = rings[ring_id];
-        const std::size_t n = ring.vertices.size();
-        if (n <= 4) {
+    auto previous_node = [&](int node_id, int steps) {
+        while (steps-- > 0) {
+            node_id = nodes[static_cast<std::size_t>(node_id)].prev;
+        }
+        return node_id;
+    };
+
+    auto relabel_ring = [&](const int ring_index) {
+        RingState& ring = rings[static_cast<std::size_t>(ring_index)];
+        int node_id = ring.anchor;
+        double label = 0.0;
+        do {
+            nodes[static_cast<std::size_t>(node_id)].order_label = label;
+            label += 1.0;
+            node_id = nodes[static_cast<std::size_t>(node_id)].next;
+        } while (node_id != ring.anchor);
+        ring.max_label = label - 1.0;
+    };
+
+    auto activate_edge = [&](const int from_node) {
+        if (from_node < 0) {
+            return;
+        }
+        const Node& from = nodes[static_cast<std::size_t>(from_node)];
+        if (!from.alive || from.next < 0) {
+            edges[static_cast<std::size_t>(from_node)].active = false;
             return;
         }
 
-        const std::size_t a = ((start_index % n) + n) % n;
-        const std::size_t b = (a + 1) % n;
-        const std::size_t c = (a + 2) % n;
-        const std::size_t d = (a + 3) % n;
-        if (node_ids[ring_id][b] == fixed_node_ids[ring_id] ||
-            node_ids[ring_id][c] == fixed_node_ids[ring_id]) {
+        const Node& to = nodes[static_cast<std::size_t>(from.next)];
+        EdgeRecord& edge = edges[static_cast<std::size_t>(from_node)];
+        edge = EdgeRecord {
+            from.point,
+            to.point,
+            from_node,
+            from.next,
+            from.ring_id,
+            true,
+        };
+        grid.add_edge(from_node, edge.a, edge.b);
+    };
+
+    auto deactivate_edge = [&](const int from_node) {
+        if (from_node >= 0 &&
+            static_cast<std::size_t>(from_node) < edges.size()) {
+            edges[static_cast<std::size_t>(from_node)].active = false;
+            ++dirty_edge_updates;
+        }
+    };
+
+    auto rebuild_grid = [&]() {
+        grid = SegmentGrid(cell_size);
+        grid.ensure_capacity(edges.size());
+        for (std::size_t edge_id = 0; edge_id < edges.size(); ++edge_id) {
+            const EdgeRecord& edge = edges[edge_id];
+            if (!edge.active) {
+                continue;
+            }
+            grid.add_edge(static_cast<int>(edge_id), edge.a, edge.b);
+        }
+        dirty_edge_updates = 0;
+    };
+
+    auto push_candidate = [&](const int a_node) {
+        if (a_node < 0 ||
+            static_cast<std::size_t>(a_node) >= nodes.size()) {
+            return;
+        }
+        const Node& a = nodes[static_cast<std::size_t>(a_node)];
+        if (!a.alive) {
+            return;
+        }
+        const RingState& ring = rings[static_cast<std::size_t>(a.ring_id)];
+        if (ring.size <= 4) {
+            return;
+        }
+
+        const int b_node = a.next;
+        const int c_node = nodes[static_cast<std::size_t>(b_node)].next;
+        const int d_node = nodes[static_cast<std::size_t>(c_node)].next;
+        if (b_node < 0 || c_node < 0 || d_node < 0) {
+            return;
+        }
+        const Node& b = nodes[static_cast<std::size_t>(b_node)];
+        const Node& c = nodes[static_cast<std::size_t>(c_node)];
+        const Node& d = nodes[static_cast<std::size_t>(d_node)];
+        if (!b.alive || !c.alive || !d.alive || b.fixed || c.fixed) {
             return;
         }
 
         const std::optional<Point> replacement = compute_apsc_point(
-            ring.vertices[a], ring.vertices[b], ring.vertices[c], ring.vertices[d]);
+            a.point, b.point, c.point, d.point);
         if (!replacement) {
             return;
         }
 
         const double cost = compute_areal_displacement(
-            ring.vertices[a],
-            ring.vertices[b],
-            ring.vertices[c],
-            ring.vertices[d],
+            a.point,
+            b.point,
+            c.point,
+            d.point,
             *replacement);
 
         heap.push(QueueEntry {
             normalized_queue_cost(cost),
             replacement->y,
-            a,
+            a.order_label,
+            a_node,
+            b_node,
+            c_node,
+            d_node,
             sequence++,
-            ring_id,
-            node_ids[ring_id][a],
-            node_ids[ring_id][b],
-            node_ids[ring_id][c],
-            node_ids[ring_id][d],
+            a.ring_id,
         });
     };
 
-    for (std::size_t ring_index = 0; ring_index < rings.size(); ++ring_index) {
-        for (std::size_t start_index = 0;
-             start_index < rings[ring_index].vertices.size();
-             ++start_index) {
-            push_candidate(static_cast<int>(ring_index), start_index);
+    for (const RingState& ring : rings) {
+        int node_id = ring.anchor;
+        const std::size_t stride = candidate_seed_stride(ring.size);
+        for (std::size_t i = 0; i < ring.size; ++i) {
+            if (i % stride == 0) {
+                push_candidate(node_id);
+            }
             ++result.seeded_candidate_windows;
+            node_id = nodes[static_cast<std::size_t>(node_id)].next;
         }
     }
+
+    auto candidate_is_topology_safe_local =
+        [&](const int a_node,
+            const int b_node,
+            const int c_node,
+            const int d_node,
+            const Point& replacement) {
+            const Point& a = nodes[static_cast<std::size_t>(a_node)].point;
+            const Point& d = nodes[static_cast<std::size_t>(d_node)].point;
+            const int ring_id = nodes[static_cast<std::size_t>(a_node)].ring_id;
+
+            auto should_skip = [&](const EdgeRecord& edge) {
+                if (!edge.active) {
+                    return true;
+                }
+                const bool is_ab = edge.from == a_node && edge.to == b_node;
+                const bool is_bc = edge.from == b_node && edge.to == c_node;
+                const bool is_cd = edge.from == c_node && edge.to == d_node;
+                if (is_ab || is_bc || is_cd) {
+                    return true;
+                }
+                return edge.ring_id == ring_id &&
+                       (edge.from == a_node || edge.to == a_node ||
+                        edge.from == d_node || edge.to == d_node);
+            };
+
+            return !grid.any_intersection(a, replacement, edges, should_skip) &&
+                   !grid.any_intersection(replacement, d, edges, should_skip);
+        };
+
+    auto collect_ring_vertices =
+        [&](const int ring_index,
+            const int replace_a,
+            const int replace_b,
+            const int replace_c,
+            const int replace_d,
+            const Point* replacement_point) {
+            std::vector<Point> vertices;
+            const RingState& ring = rings[static_cast<std::size_t>(ring_index)];
+            vertices.reserve(ring.size + 1);
+
+            int node_id = ring.anchor;
+            do {
+                if (node_id == replace_a && replacement_point != nullptr) {
+                    vertices.push_back(nodes[static_cast<std::size_t>(replace_a)].point);
+                    vertices.push_back(*replacement_point);
+                    node_id = replace_d;
+                    continue;
+                }
+
+                if (node_id == replace_b || node_id == replace_c) {
+                    node_id = nodes[static_cast<std::size_t>(node_id)].next;
+                    continue;
+                }
+
+                vertices.push_back(nodes[static_cast<std::size_t>(node_id)].point);
+                node_id = nodes[static_cast<std::size_t>(node_id)].next;
+            } while (node_id != ring.anchor);
+
+            return vertices;
+        };
+
+    auto point_in_vertices = [&](const std::vector<Point>& ring_vertices, const Point& point) {
+        bool inside = false;
+        const std::size_t count = ring_vertices.size();
+        for (std::size_t i = 0, j = count - 1; i < count; j = i++) {
+            const Point& va = ring_vertices[i];
+            const Point& vb = ring_vertices[j];
+            if (point_on_segment(point, va, vb)) {
+                return true;
+            }
+
+            const bool crosses =
+                ((va.y > point.y) != (vb.y > point.y)) &&
+                (point.x <
+                 (vb.x - va.x) * (point.y - va.y) / (vb.y - va.y + kEpsilon) + va.x);
+            if (crosses) {
+                inside = !inside;
+            }
+        }
+        return inside;
+    };
+
+    auto candidate_preserves_ring_containment =
+        [&](const int ring_index,
+            const int a_node,
+            const int b_node,
+            const int c_node,
+            const int d_node,
+            const Point& replacement) {
+            if (rings.size() <= 1) {
+                return true;
+            }
+
+            if (ring_index == 0) {
+                const std::vector<Point> new_exterior = collect_ring_vertices(
+                    ring_index, a_node, b_node, c_node, d_node, &replacement);
+                for (std::size_t other = 1; other < rings.size(); ++other) {
+                    const Point& sample =
+                        nodes[static_cast<std::size_t>(rings[other].anchor)].point;
+                    if (!point_in_vertices(new_exterior, sample)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            const std::vector<Point> new_hole = collect_ring_vertices(
+                ring_index, a_node, b_node, c_node, d_node, &replacement);
+            const std::vector<Point> exterior = collect_ring_vertices(0, -1, -1, -1, -1, nullptr);
+
+            const Point& anchor_sample =
+                nodes[static_cast<std::size_t>(rings[static_cast<std::size_t>(ring_index)].anchor)].point;
+            if (!point_in_vertices(exterior, anchor_sample) ||
+                !point_in_vertices(exterior, replacement)) {
+                return false;
+            }
+
+            for (std::size_t other = 1; other < rings.size(); ++other) {
+                if (static_cast<int>(other) == ring_index) {
+                    continue;
+                }
+                const Point& other_sample =
+                    nodes[static_cast<std::size_t>(rings[other].anchor)].point;
+                if (point_in_vertices(new_hole, other_sample)) {
+                    return false;
+                }
+            }
+
+            return true;
+        };
+
+    auto materialize_polygon = [&]() {
+        Polygon polygon;
+        polygon.rings.reserve(rings.size());
+        for (const RingState& ring : rings) {
+            Ring output_ring;
+            output_ring.ring_id = ring.ring_id;
+            output_ring.vertices = collect_ring_vertices(
+                ring.ring_id, -1, -1, -1, -1, nullptr);
+            polygon.rings.push_back(std::move(output_ring));
+        }
+        return polygon;
+    };
+
+    auto current_ring_index_of = [&](const int ring_index, const int node_id) {
+        int current = rings[static_cast<std::size_t>(ring_index)].anchor;
+        std::size_t index = 0;
+        while (current != node_id) {
+            current = nodes[static_cast<std::size_t>(current)].next;
+            ++index;
+        }
+        return index;
+    };
 
     while (current_vertices > target_vertices && !heap.empty()) {
         const QueueEntry candidate = heap.top();
@@ -428,105 +882,127 @@ SimplificationResult Simplifier::simplify(
             continue;
         }
 
-        Ring& ring = rings[static_cast<std::size_t>(candidate.ring_id)];
-        const std::size_t n = ring.vertices.size();
-        if (n <= 4) {
+        RingState& ring = rings[static_cast<std::size_t>(candidate.ring_id)];
+        if (ring.size <= 4) {
             continue;
         }
 
-        const auto node_position =
-            node_positions[candidate.ring_id].find(candidate.id_a);
-        if (node_position == node_positions[candidate.ring_id].end()) {
+        const int a_node = candidate.a_node;
+        const int b_node = candidate.b_node;
+        const int c_node = candidate.c_node;
+        const int d_node = candidate.d_node;
+        if (a_node < 0 || b_node < 0 || c_node < 0 || d_node < 0) {
             continue;
         }
-        const std::size_t a = node_position->second;
-        const std::size_t b = (a + 1) % n;
-        const std::size_t c = (a + 2) % n;
-        const std::size_t d = (a + 3) % n;
-
-        if (node_ids[candidate.ring_id][b] != candidate.id_b ||
-            node_ids[candidate.ring_id][c] != candidate.id_c ||
-            node_ids[candidate.ring_id][d] != candidate.id_d) {
+        const Node& a = nodes[static_cast<std::size_t>(a_node)];
+        const Node& b = nodes[static_cast<std::size_t>(b_node)];
+        const Node& c = nodes[static_cast<std::size_t>(c_node)];
+        const Node& d = nodes[static_cast<std::size_t>(d_node)];
+        if (!a.alive || !b.alive || !c.alive || !d.alive) {
             continue;
         }
-        if (node_ids[candidate.ring_id][b] == fixed_node_ids[candidate.ring_id] ||
-            node_ids[candidate.ring_id][c] == fixed_node_ids[candidate.ring_id]) {
+        if (a.next != b_node || b.next != c_node || c.next != d_node) {
             continue;
         }
-
-        if (((a + 1) % n) != b || ((b + 1) % n) != c || ((c + 1) % n) != d) {
+        if (b.fixed || c.fixed) {
             continue;
         }
-
-        const Point& point_a = ring.vertices[a];
-        const Point& point_b = ring.vertices[b];
-        const Point& point_c = ring.vertices[c];
-        const Point& point_d = ring.vertices[d];
 
         const std::optional<Point> replacement =
-            compute_apsc_point(point_a, point_b, point_c, point_d);
+            compute_apsc_point(a.point, b.point, c.point, d.point);
         if (!replacement) {
             continue;
         }
-
-        CollapseCandidate collapse;
-        collapse.ring_id = candidate.ring_id;
-        collapse.start_index = a;
-        collapse.replacement_point = *replacement;
-        collapse.estimated_areal_displacement = compute_areal_displacement(
-            point_a, point_b, point_c, point_d, *replacement);
-
-        Polygon working_polygon;
-        working_polygon.rings = rings;
-        if (!candidate_is_topology_safe(working_polygon, collapse)) {
-            continue;
+        if (current_vertices <= 5000) {
+            Polygon polygon = materialize_polygon();
+            CollapseCandidate collapse;
+            collapse.ring_id = candidate.ring_id;
+            collapse.start_index =
+                current_ring_index_of(candidate.ring_id, a_node);
+            collapse.replacement_point = *replacement;
+            collapse.estimated_areal_displacement = compute_areal_displacement(
+                a.point, b.point, c.point, d.point, *replacement);
+            if (!candidate_is_topology_safe(polygon, collapse)) {
+                continue;
+            }
+        } else {
+            if (!candidate_is_topology_safe_local(
+                    a_node, b_node, c_node, d_node, *replacement)) {
+                continue;
+            }
+            if (!candidate_preserves_ring_containment(
+                    candidate.ring_id, a_node, b_node, c_node, d_node, *replacement)) {
+                continue;
+            }
         }
 
-        result.areal_displacement += collapse.estimated_areal_displacement;
+        result.areal_displacement += compute_areal_displacement(
+            a.point, b.point, c.point, d.point, *replacement);
 
-        const std::size_t remove_high = std::max(b, c);
-        const std::size_t remove_low = std::min(b, c);
+        deactivate_edge(a_node);
+        deactivate_edge(b_node);
+        deactivate_edge(c_node);
 
-        ring.vertices.erase(ring.vertices.begin() + static_cast<std::ptrdiff_t>(remove_high));
-        ring.vertices.erase(ring.vertices.begin() + static_cast<std::ptrdiff_t>(remove_low));
-        node_ids[candidate.ring_id].erase(
-            node_ids[candidate.ring_id].begin() +
-            static_cast<std::ptrdiff_t>(remove_high));
-        node_ids[candidate.ring_id].erase(
-            node_ids[candidate.ring_id].begin() +
-            static_cast<std::ptrdiff_t>(remove_low));
-        node_positions[candidate.ring_id].erase(candidate.id_b);
-        node_positions[candidate.ring_id].erase(candidate.id_c);
+        nodes[static_cast<std::size_t>(b_node)].alive = false;
+        nodes[static_cast<std::size_t>(c_node)].alive = false;
 
-        const std::size_t insert_pos = remove_low;
-        ring.vertices.insert(
-            ring.vertices.begin() + static_cast<std::ptrdiff_t>(insert_pos),
-            *replacement);
-        const int replacement_id = next_node_id++;
-        node_ids[candidate.ring_id].insert(
-            node_ids[candidate.ring_id].begin() +
-                static_cast<std::ptrdiff_t>(insert_pos),
-            replacement_id);
+        double new_label = 0.0;
+        if (d_node == ring.anchor) {
+            new_label = ring.max_label + 1.0;
+            ring.max_label = new_label;
+        } else {
+            const double a_label = nodes[static_cast<std::size_t>(a_node)].order_label;
+            const double d_label = nodes[static_cast<std::size_t>(d_node)].order_label;
+            if (d_label - a_label <= 1e-9) {
+                relabel_ring(candidate.ring_id);
+            }
 
-        for (std::size_t index = insert_pos; index < node_ids[candidate.ring_id].size(); ++index) {
-            node_positions[candidate.ring_id][node_ids[candidate.ring_id][index]] = index;
+            const double refreshed_a =
+                nodes[static_cast<std::size_t>(a_node)].order_label;
+            const double refreshed_d =
+                nodes[static_cast<std::size_t>(d_node)].order_label;
+            new_label = 0.5 * (refreshed_a + refreshed_d);
         }
+
+        const int e_node = append_node(*replacement, candidate.ring_id, false, new_label);
+        nodes[static_cast<std::size_t>(e_node)].prev = a_node;
+        nodes[static_cast<std::size_t>(e_node)].next = d_node;
+        nodes[static_cast<std::size_t>(a_node)].next = e_node;
+        nodes[static_cast<std::size_t>(d_node)].prev = e_node;
+
+        activate_edge(a_node);
+        activate_edge(e_node);
+        dirty_edge_updates += 2;
 
         --current_vertices;
+        --ring.size;
         ++result.successful_collapses;
 
-        const std::size_t new_n = ring.vertices.size();
-        const std::size_t new_e = insert_pos % new_n;
-
-        for (int offset = -3; offset <= 0; ++offset) {
-            const std::size_t start = static_cast<std::size_t>(
-                (static_cast<long long>(new_e) + offset + static_cast<long long>(new_n)) %
-                static_cast<long long>(new_n));
-            push_candidate(candidate.ring_id, start);
+        if (dirty_edge_updates > current_vertices * 2) {
+            rebuild_grid();
         }
+
+        push_candidate(previous_node(a_node, 2));
+        push_candidate(previous_node(a_node, 1));
+        push_candidate(a_node);
+        push_candidate(e_node);
     }
 
-    result.polygon.rings = std::move(rings);
+    result.polygon.rings.clear();
+    result.polygon.rings.reserve(rings.size());
+    for (const RingState& ring : rings) {
+        Ring output_ring;
+        output_ring.ring_id = ring.ring_id;
+        output_ring.vertices.reserve(ring.size);
+
+        int node_id = ring.anchor;
+        do {
+            output_ring.vertices.push_back(nodes[static_cast<std::size_t>(node_id)].point);
+            node_id = nodes[static_cast<std::size_t>(node_id)].next;
+        } while (node_id != ring.anchor);
+
+        result.polygon.rings.push_back(std::move(output_ring));
+    }
     result.output_area = total_signed_area(result.polygon);
     return result;
 }
