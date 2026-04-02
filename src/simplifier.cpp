@@ -243,11 +243,9 @@ namespace apsc {
             int         id_a{}, id_b{}, id_c{}, id_d{};
 
             bool operator>(const QueueEntry& o) const {
-                if (cost != o.cost)        return cost > o.cost;
-                if (replacement_y != o.replacement_y) return replacement_y > o.replacement_y;
-                if (start_index != o.start_index) return start_index < o.start_index;
-                return sequence > o.sequence;
-            }
+            if (cost != o.cost) return cost > o.cost;
+            return sequence > o.sequence;
+}
         };
 
         double normalise_cost(double cost) {
