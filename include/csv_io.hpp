@@ -1,23 +1,19 @@
-#pragma once
-
-#include <ostream>
-#include <string>
+#ifndef CSV_IO_H
+#define CSV_IO_H
 
 #include "geometry.hpp"
+#include <string>
+#include <vector>
 
-namespace apsc {
+namespace CSV_IO {
+    // Loads CSV and populates the rings, initial area, and vertex count
+    void loadCSV(const std::string& filename, std::vector<std::vector<Vertex*>>& rings, double& initial_signed_area, int& current_vertices);
+    
+    // Prints the simplified rings to standard output
+    void printOutput(const std::vector<std::vector<Vertex*>>& rings, double initial_signed_area, double total_areal_displacement);
+    
+    // Cleans up dynamically allocated memory
+    void cleanup(std::vector<std::vector<Vertex*>>& rings);
+}
 
-    // Reads a polygon from a CSV file with header: ring_id,vertex_id,x,y
-    // Throws std::runtime_error on any format or validation error.
-    Polygon read_polygon_csv(const std::string& path);
-
-    // Writes the simplified polygon plus the three metric lines to `out`.
-    // Format matches the assignment specification exactly.
-    void write_polygon_csv(
-        std::ostream& out,
-        const Polygon& polygon,
-        double input_area,
-        double output_area,
-        double areal_displacement);
-
-}  // namespace apsc
+#endif // CSV_IO_H

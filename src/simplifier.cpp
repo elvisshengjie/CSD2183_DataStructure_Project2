@@ -1,504 +1,318 @@
-#include "simplifier.hpp"
-
-#include <algorithm>
+#include "../include/simplifier.hpp"
 #include <cmath>
-#include <optional>
-#include <queue>
-#include <unordered_map>
-#include <vector>
+#include <limits>
+#include <algorithm>
 
-namespace apsc {
-    namespace {
+using namespace std;
 
-        constexpr double kEpsilon = 1e-9;
-        constexpr double kZeroCostEpsilon = 1e-6;
+// --- INTERNAL DYNAMIC SPATIAL GRID ---
+class SpatialGrid {
+private:
+    double min_x, min_y, cell_size;
+    int cols, rows;
+    
+    struct EdgeRecord {
+        Vertex* u;
+        Vertex* v;
+        int version_u;
+        int version_v;
+    };
+    vector<vector<vector<EdgeRecord>>> grid;
 
-        double cross(const Point& a, const Point& b, const Point& c) {
-            return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
-        }
-
-        bool nearly_equal(const double lhs, const double rhs) {
-            return std::abs(lhs - rhs) <= kEpsilon;
-        }
-
-        double point_side_of_line(const Point& point, const Point& a, const Point& b) {
-            return cross(a, b, point);
-        }
-
-        double dist_to_line(const Point& point, const Point& a, const Point& b) {
-            const double denom = std::hypot(b.x - a.x, b.y - a.y);
-            if (denom <= kEpsilon) {
-                return 0.0;
-            }
-            return std::abs(cross(a, b, point)) / denom;
-        }
-
-        double signed_area_points(const std::vector<Point>& vertices) {
-            if (vertices.size() < 3) {
-                return 0.0;
-            }
-
-            double area = 0.0;
-            for (std::size_t i = 0; i < vertices.size(); ++i) {
-                const Point& current = vertices[i];
-                const Point& next = vertices[(i + 1) % vertices.size()];
-                area += current.x * next.y - next.x * current.y;
-            }
-            return 0.5 * area;
-        }
-
-        struct Line {
-            double a{};
-            double b{};
-            double c{};
-        };
-
-        Line compute_e_line(const Point& a, const Point& b, const Point& c, const Point& d) {
-            return {
-                d.y - a.y,
-                a.x - d.x,
-                -b.y * a.x + (a.y - c.y) * b.x + (b.y - d.y) * c.x + c.y * d.x,
-            };
-        }
-
-        std::optional<Point> line_line_intersection(
-            const Point& p1,
-            const Point& p2,
-            const Point& q1,
-            const Point& q2) {
-            const double a1 = p2.y - p1.y;
-            const double b1 = p1.x - p2.x;
-            const double c1 = a1 * p1.x + b1 * p1.y;
-
-            const double a2 = q2.y - q1.y;
-            const double b2 = q1.x - q2.x;
-            const double c2 = a2 * q1.x + b2 * q1.y;
-
-            const double det = a1 * b2 - a2 * b1;
-            if (std::abs(det) <= kEpsilon) {
-                return std::nullopt;
-            }
-
-            return Point{
-                (b2 * c1 - b1 * c2) / det,
-                (a1 * c2 - a2 * c1) / det,
-            };
-        }
-
-        std::optional<Point> intersect_e_line_with_segment(
-            const Line& line,
-            const Point& p1,
-            const Point& p2) {
-            Point ep1;
-            Point ep2;
-
-            if (std::abs(line.b) > kEpsilon) {
-                ep1 = { 0.0, -line.c / line.b };
-                ep2 = { 1.0, -(line.a + line.c) / line.b };
-            }
-            else if (std::abs(line.a) > kEpsilon) {
-                ep1 = { -line.c / line.a, 0.0 };
-                ep2 = { -line.c / line.a, 1.0 };
-            }
-            else {
-                return std::nullopt;
-            }
-
-            return line_line_intersection(ep1, ep2, p1, p2);
-        }
-
-        std::optional<Point> compute_apsc_point(
-            const Point& a,
-            const Point& b,
-            const Point& c,
-            const Point& d) {
-            const Line e_line = compute_e_line(a, b, c, d);
-            const auto intersection_ab = intersect_e_line_with_segment(e_line, a, b);
-            const auto intersection_cd = intersect_e_line_with_segment(e_line, c, d);
-            const double side_b = point_side_of_line(b, a, d);
-            const double side_c = point_side_of_line(c, a, d);
-            const bool same_side = (side_b * side_c) > 0.0;
-
-            auto choose_intersection = [&](const bool prefer_ab) -> std::optional<Point> {
-                if (prefer_ab) {
-                    if (intersection_ab) {
-                        return intersection_ab;
-                    }
-                    return intersection_cd;
-                }
-
-                if (intersection_cd) {
-                    return intersection_cd;
-                }
-                return intersection_ab;
-                };
-
-            if (same_side) {
-                const double dist_b = dist_to_line(b, a, d);
-                const double dist_c = dist_to_line(c, a, d);
-                if (dist_b > dist_c + kEpsilon) {
-                    return choose_intersection(false);
-                }
-                return choose_intersection(true);
-            }
-
-            Point point_on_e_line;
-            if (std::abs(e_line.b) > kEpsilon) {
-                point_on_e_line = { 0.0, -e_line.c / e_line.b };
-            }
-            else {
-                point_on_e_line = { -e_line.c / e_line.a, 0.0 };
-            }
-
-            const double side_e_line = point_side_of_line(point_on_e_line, a, d);
-            return choose_intersection((side_b > 0.0) == (side_e_line > 0.0));
-        }
-
-        double compute_areal_displacement(
-            const Point& a,
-            const Point& b,
-            const Point& c,
-            const Point& d,
-            const Point& e) {
-            const bool on_ab = nearly_equal(cross(a, b, e), 0.0);
-            const bool on_cd = nearly_equal(cross(c, d, e), 0.0);
-
-            if (on_ab && !on_cd) {
-                if (const auto split = line_line_intersection(e, d, b, c)) {
-                    return std::abs(signed_area_points({ b, e, *split })) +
-                        std::abs(signed_area_points({ *split, c, d }));
-                }
-            }
-
-            if (on_cd && !on_ab) {
-                if (const auto split = line_line_intersection(a, e, b, c)) {
-                    return std::abs(signed_area_points({ a, b, *split })) +
-                        std::abs(signed_area_points({ *split, e, c }));
-                }
-            }
-
-            return std::abs(signed_area_points({ a, b, e })) +
-                std::abs(signed_area_points({ e, c, d }));
-        }
-
-        struct QueueEntry {
-            double cost{};
-            double replacement_y{};
-            std::size_t start_index{};
-            std::size_t sequence{};
-            int ring_id{};
-            int id_a{};
-            int id_b{};
-            int id_c{};
-            int id_d{};
-
-            bool operator>(const QueueEntry& other) const {
-                // 1. Primary sort: Minimum Areal Displacement (Cost)
-                if (!nearly_equal(cost, other.cost)) {
-                    return cost > other.cost;
-                }
-                // 2. Tie-breaker 1: Lower Ring ID
-                if (ring_id != other.ring_id) {
-                    return ring_id > other.ring_id;
-                }
-                // 3. Tie-breaker 2: Earlier sequence/index to match greedy order
-                return sequence > other.sequence;
-            }
-        };
-
-        // Restored helper function!
-        double normalized_queue_cost(const double cost) {
-            if (std::abs(cost) < kZeroCostEpsilon) {
-                return 0.0;
-            }
-            return std::round(cost * 1e12) / 1e12;
-        }
-
-    }  // namespace
-
-    SimplificationResult Simplifier::simplify(
-        const Polygon& input,
-        const std::size_t target_vertices) const {
-        SimplificationResult result;
-        result.polygon = input;
-        result.input_area = total_signed_area(input);
-        result.output_area = result.input_area;
-        result.areal_displacement = 0.0;
-        result.seeded_candidate_windows = 0;
-        result.successful_collapses = 0;
-
-        std::size_t current_vertices = input.total_vertices();
-        if (target_vertices >= current_vertices) {
-            return result;
-        }
-
-        std::vector<Ring> rings = input.rings;
-        std::vector<std::vector<int>> node_ids(rings.size());
-        std::vector<std::unordered_map<int, std::size_t>> node_positions(rings.size());
-        std::vector<int> fixed_node_ids(rings.size());
-        int next_node_id = 0;
-        for (std::size_t ring_index = 0; ring_index < rings.size(); ++ring_index) {
-            node_ids[ring_index].resize(rings[ring_index].vertices.size());
-            for (std::size_t i = 0; i < rings[ring_index].vertices.size(); ++i) {
-                node_ids[ring_index][i] = next_node_id++;
-                node_positions[ring_index][node_ids[ring_index][i]] = i;
-            }
-            fixed_node_ids[ring_index] = node_ids[ring_index].front();
-        }
-
-        std::priority_queue<QueueEntry, std::vector<QueueEntry>, std::greater<QueueEntry>>
-            heap;
-        std::size_t sequence = 0;
-
-        auto push_candidate = [&](const int ring_id, const std::size_t start_index) {
-            const Ring& ring = rings[ring_id];
-            const std::size_t n = ring.vertices.size();
-            if (n < 4) {
-                return;
-            }
-
-            const std::size_t a = ((start_index % n) + n) % n;
-            const std::size_t b = (a + 1) % n;
-            const std::size_t c = (a + 2) % n;
-            const std::size_t d = (a + 3) % n;
-            if (node_ids[ring_id][b] == fixed_node_ids[ring_id] ||
-                node_ids[ring_id][c] == fixed_node_ids[ring_id]) {
-                return;
-            }
-
-            const std::optional<Point> replacement = compute_apsc_point(
-                ring.vertices[a], ring.vertices[b], ring.vertices[c], ring.vertices[d]);
-            if (!replacement) {
-                return;
-            }
-
-            const double cost = compute_areal_displacement(
-                ring.vertices[a],
-                ring.vertices[b],
-                ring.vertices[c],
-                ring.vertices[d],
-                *replacement);
-
-            heap.push(QueueEntry{
-                normalized_queue_cost(cost),
-                replacement->y,
-                a,
-                sequence++,
-                ring_id,
-                node_ids[ring_id][a],
-                node_ids[ring_id][b],
-                node_ids[ring_id][c],
-                node_ids[ring_id][d],
-                });
-            };
-
-        for (std::size_t ring_index = 0; ring_index < rings.size(); ++ring_index) {
-            for (std::size_t start_index = 0;
-                start_index < rings[ring_index].vertices.size();
-                ++start_index) {
-                push_candidate(static_cast<int>(ring_index), start_index);
-                ++result.seeded_candidate_windows;
-            }
-        }
-
-        while (current_vertices > target_vertices && !heap.empty()) {
-            const QueueEntry candidate = heap.top();
-            heap.pop();
-
-            if (candidate.ring_id < 0 ||
-                static_cast<std::size_t>(candidate.ring_id) >= rings.size()) {
-                continue;
-            }
-
-            Ring& ring = rings[static_cast<std::size_t>(candidate.ring_id)];
-            const std::size_t n = ring.vertices.size();
-            if (n < 4) {
-                continue;
-            }
-
-            const auto node_position =
-                node_positions[candidate.ring_id].find(candidate.id_a);
-            if (node_position == node_positions[candidate.ring_id].end()) {
-                continue;
-            }
-            const std::size_t a = node_position->second;
-            const std::size_t b = (a + 1) % n;
-            const std::size_t c = (a + 2) % n;
-            const std::size_t d = (a + 3) % n;
-
-            if (node_ids[candidate.ring_id][b] != candidate.id_b ||
-                node_ids[candidate.ring_id][c] != candidate.id_c ||
-                node_ids[candidate.ring_id][d] != candidate.id_d) {
-                continue;
-            }
-            if (node_ids[candidate.ring_id][b] == fixed_node_ids[candidate.ring_id] ||
-                node_ids[candidate.ring_id][c] == fixed_node_ids[candidate.ring_id]) {
-                continue;
-            }
-
-            if (((a + 1) % n) != b || ((b + 1) % n) != c || ((c + 1) % n) != d) {
-                continue;
-            }
-
-            const Point& point_a = ring.vertices[a];
-            const Point& point_b = ring.vertices[b];
-            const Point& point_c = ring.vertices[c];
-            const Point& point_d = ring.vertices[d];
-
-            const std::optional<Point> replacement =
-                compute_apsc_point(point_a, point_b, point_c, point_d);
-            if (!replacement) {
-                continue;
-            }
-
-            CollapseCandidate collapse;
-            collapse.ring_id = candidate.ring_id;
-            collapse.start_index = a;
-            collapse.replacement_point = *replacement;
-            collapse.estimated_areal_displacement = compute_areal_displacement(
-                point_a, point_b, point_c, point_d, *replacement);
-
-            Polygon working_polygon;
-            working_polygon.rings = rings;
-            if (!candidate_is_topology_safe(working_polygon, collapse)) {
-                continue;
-            }
-
-            result.areal_displacement += collapse.estimated_areal_displacement;
-
-            const std::size_t remove_high = std::max(b, c);
-            const std::size_t remove_low = std::min(b, c);
-
-            ring.vertices.erase(ring.vertices.begin() + static_cast<std::ptrdiff_t>(remove_high));
-            ring.vertices.erase(ring.vertices.begin() + static_cast<std::ptrdiff_t>(remove_low));
-            node_ids[candidate.ring_id].erase(
-                node_ids[candidate.ring_id].begin() +
-                static_cast<std::ptrdiff_t>(remove_high));
-            node_ids[candidate.ring_id].erase(
-                node_ids[candidate.ring_id].begin() +
-                static_cast<std::ptrdiff_t>(remove_low));
-            node_positions[candidate.ring_id].erase(candidate.id_b);
-            node_positions[candidate.ring_id].erase(candidate.id_c);
-
-            const std::size_t insert_pos = remove_low;
-            ring.vertices.insert(
-                ring.vertices.begin() + static_cast<std::ptrdiff_t>(insert_pos),
-                *replacement);
-            const int replacement_id = next_node_id++;
-            node_ids[candidate.ring_id].insert(
-                node_ids[candidate.ring_id].begin() +
-                static_cast<std::ptrdiff_t>(insert_pos),
-                replacement_id);
-
-            for (std::size_t index = insert_pos; index < node_ids[candidate.ring_id].size(); ++index) {
-                node_positions[candidate.ring_id][node_ids[candidate.ring_id][index]] = index;
-            }
-
-            --current_vertices;
-            ++result.successful_collapses;
-
-            const std::size_t new_n = ring.vertices.size();
-            const std::size_t new_e = insert_pos % new_n;
-
-            for (int offset = -3; offset <= 0; ++offset) {
-                const std::size_t start = static_cast<std::size_t>(
-                    (static_cast<long long>(new_e) + offset + static_cast<long long>(new_n)) %
-                    static_cast<long long>(new_n));
-                push_candidate(candidate.ring_id, start);
-            }
-        }
-
-        result.polygon.rings = std::move(rings);
-        result.output_area = total_signed_area(result.polygon);
-        return result;
+    void getCellCoords(const Point& p, int& cx, int& cy) {
+        cx = max(0, min(cols - 1, (int)((p.x - min_x) / cell_size)));
+        cy = max(0, min(rows - 1, (int)((p.y - min_y) / cell_size)));
     }
 
-    std::vector<CollapseCandidate> Simplifier::build_initial_candidates(
-        const Polygon& polygon) const {
-        std::vector<CollapseCandidate> candidates;
-
-        for (const Ring& ring : polygon.rings) {
-            if (ring.vertices.size() < 4) {
-                continue;
-            }
-            for (std::size_t start_index = 0; start_index < ring.vertices.size();
-                ++start_index) {
-                if (const auto candidate = compute_candidate(ring, start_index)) {
-                    candidates.push_back(*candidate);
-                }
-            }
-        }
-
-        return candidates;
-    }
-
-    std::optional<CollapseCandidate> Simplifier::compute_candidate(
-        const Ring& ring,
-        const std::size_t start_index) const {
-        const std::size_t n = ring.vertices.size();
-        if (n < 4) {
-            return std::nullopt;
-        }
-
-        const std::size_t a = start_index % n;
-        const std::size_t b = (a + 1) % n;
-        const std::size_t c = (a + 2) % n;
-        const std::size_t d = (a + 3) % n;
-
-        const std::optional<Point> replacement = compute_apsc_point(
-            ring.vertices[a], ring.vertices[b], ring.vertices[c], ring.vertices[d]);
-        if (!replacement) {
-            return std::nullopt;
-        }
-
-        CollapseCandidate candidate;
-        candidate.ring_id = ring.ring_id;
-        candidate.start_index = a;
-        candidate.replacement_point = *replacement;
-        candidate.estimated_areal_displacement = compute_areal_displacement(
-            ring.vertices[a],
-            ring.vertices[b],
-            ring.vertices[c],
-            ring.vertices[d],
-            *replacement);
-        return candidate;
-    }
-
-    // Fixed topology safety function!
-    bool Simplifier::candidate_is_topology_safe(
-        const Polygon& polygon,
-        const CollapseCandidate& candidate) const {
-        if (candidate.ring_id < 0 ||
-            static_cast<std::size_t>(candidate.ring_id) >= polygon.rings.size()) {
-            return false;
-        }
-
-        // 1. Create a temporary copy to test the collapse
-        Polygon working_polygon = polygon;
-        Ring& ring = working_polygon.rings[static_cast<std::size_t>(candidate.ring_id)];
+public:
+    SpatialGrid(double mx, double my, double maxx, double maxy, int num_segments) {
+        min_x = mx; min_y = my;
+        cell_size = max((maxx - min_x) / sqrt(num_segments), (maxy - min_y) / sqrt(num_segments));
+        if (cell_size < 1e-6) cell_size = 1.0; 
         
-        if (ring.vertices.size() < 4) {
-            return false;
-        }
-
-        const std::size_t n = ring.vertices.size();
-        const std::size_t a = candidate.start_index % n;
-        const std::size_t b = (a + 1) % n;
-        const std::size_t c = (a + 2) % n;
-
-        // 2. Apply the collapse locally (remove B and C, insert E at remove_low)
-        const std::size_t remove_high = std::max(b, c);
-        const std::size_t remove_low = std::min(b, c);
-
-        ring.vertices.erase(ring.vertices.begin() + static_cast<std::ptrdiff_t>(remove_high));
-        ring.vertices.erase(ring.vertices.begin() + static_cast<std::ptrdiff_t>(remove_low));
-        ring.vertices.insert(
-            ring.vertices.begin() + static_cast<std::ptrdiff_t>(remove_low), 
-            candidate.replacement_point
-        );
-
-        // 3. Delegate to your existing robust geometry checker
-        return polygon_topology_is_valid(working_polygon);
+        cols = ceil((maxx - min_x) / cell_size) + 1;
+        rows = ceil((maxy - min_y) / cell_size) + 1;
+        grid.resize(cols, vector<vector<EdgeRecord>>(rows));
     }
 
-}  // namespace apsc
+    void insert(Vertex* a, Vertex* b) {
+        int cx1, cy1, cx2, cy2;
+        getCellCoords(a->p, cx1, cy1);
+        getCellCoords(b->p, cx2, cy2);
+        
+        int min_cx = min(cx1, cx2), max_cx = max(cx1, cx2);
+        int min_cy = min(cy1, cy2), max_cy = max(cy1, cy2);
+
+        for (int i = min_cx; i <= max_cx; i++) {
+            for (int j = min_cy; j <= max_cy; j++) {
+                grid[i][j].push_back({a, b, a->version, b->version});
+            }
+        }
+    }
+
+    bool segmentsIntersect(const Point& a, const Point& b, const Point& c, const Point& d) {
+        double cp1 = crossProduct(a, b, c);
+        double cp2 = crossProduct(a, b, d);
+        double cp3 = crossProduct(c, d, a);
+        double cp4 = crossProduct(c, d, b);
+
+        if (((cp1 > 1e-9 && cp2 < -1e-9) || (cp1 < -1e-9 && cp2 > 1e-9)) &&
+            ((cp3 > 1e-9 && cp4 < -1e-9) || (cp3 < -1e-9 && cp4 > 1e-9))) {
+            return true;
+        }
+
+        auto onSegment = [](const Point& p, const Point& q, const Point& r) {
+            return q.x <= max(p.x, r.x) + 1e-9 && q.x >= min(p.x, r.x) - 1e-9 &&
+                   q.y <= max(p.y, r.y) + 1e-9 && q.y >= min(p.y, r.y) - 1e-9;
+        };
+
+        if (abs(cp1) < 1e-9 && onSegment(a, c, b)) return true;
+        if (abs(cp2) < 1e-9 && onSegment(a, d, b)) return true;
+        if (abs(cp3) < 1e-9 && onSegment(c, a, d)) return true;
+        if (abs(cp4) < 1e-9 && onSegment(c, b, d)) return true;
+
+        return false;
+    }
+
+    bool checkIntersection(const Point& p1, const Point& p2, Vertex* ignore1, Vertex* ignore2, Vertex* ignore3) {
+        int cx1, cy1, cx2, cy2;
+        getCellCoords(p1, cx1, cy1);
+        getCellCoords(p2, cx2, cy2);
+        
+        int min_cx = min(cx1, cx2), max_cx = max(cx1, cx2);
+        int min_cy = min(cy1, cy2), max_cy = max(cy1, cy2);
+
+        for (int i = min_cx; i <= max_cx; i++) {
+            for (int j = min_cy; j <= max_cy; j++) {
+                for (auto& edge : grid[i][j]) {
+                    Vertex* u = edge.u;
+                    Vertex* v = edge.v;
+                    
+                    if (!u->active || !v->active) continue;
+                    if (u->version != edge.version_u || v->version != edge.version_v) continue;
+                    
+                    if (u == ignore1 || u == ignore2 || u == ignore3 ||
+                        v == ignore1 || v == ignore2 || v == ignore3) continue;
+                    
+                    if (segmentsIntersect(p1, p2, u->p, v->p)) return true;
+                }
+            }
+        }
+        return false;
+    }
+};
+
+// --- SIMPLIFIER IMPLEMENTATION ---
+
+Simplifier::Simplifier(vector<vector<Vertex*>>& input_rings, int initial_vertices) 
+    : rings(input_rings), current_vertices(initial_vertices), total_areal_displacement(0.0) {
+    buildQueue();
+}
+
+double Simplifier::getTotalDisplacement() const {
+    return total_areal_displacement;
+}
+
+Point Simplifier::calculateE(Vertex* vA, Vertex* vB, Vertex* vC, Vertex* vD) {
+    Point A = vA->p, B = vB->p, C = vC->p, D = vD->p;
+
+    double a_E = D.y - A.y;
+    double b_E = A.x - D.x;
+    double c_E = A.x*B.y - B.x*A.y + B.x*C.y - C.x*B.y + C.x*D.y - D.x*C.y;
+
+    double a_AD = D.y - A.y;
+    double b_AD = A.x - D.x;
+    double c_AD = A.x*D.y - D.x*A.y;
+
+    double a_AB = B.y - A.y;
+    double b_AB = A.x - B.x;
+    double c_AB = A.x*B.y - B.x*A.y;
+
+    double a_CD = D.y - C.y;
+    double b_CD = C.x - D.x;
+    double c_CD = C.x*D.y - D.x*C.y;
+
+    auto eval = [](double a, double b, double c, Point P) { return a * P.x + b * P.y - c; };
+    auto intersect = [&](double a1, double b1, double c1, double a2, double b2, double c2, bool& valid) -> Point {
+        double det = a1 * b2 - a2 * b1;
+        if (abs(det) < 1e-9) { valid = false; return {0,0}; }
+        valid = true;
+        return {(c1 * b2 - c2 * b1) / det, (a1 * c2 - a2 * c1) / det};
+    };
+
+    bool vAB, vCD;
+    Point E_AB = intersect(a_E, b_E, c_E, a_AB, b_AB, c_AB, vAB);
+    Point E_CD = intersect(a_E, b_E, c_E, a_CD, b_CD, c_CD, vCD);
+
+    double eval_AD_B = eval(a_AD, b_AD, c_AD, B);
+    double eval_AD_C = eval(a_AD, b_AD, c_AD, C);
+
+    if (eval_AD_B * eval_AD_C >= 0) { 
+        if (abs(eval_AD_B) > abs(eval_AD_C)) {
+            if (vCD) return E_CD;
+            if (vAB) return E_AB;
+        } else {
+            if (vAB) return E_AB;
+            if (vCD) return E_CD;
+        }
+    } else {
+        double eval_AD_E = c_E - c_AD; 
+        if (eval_AD_B * eval_AD_E > 0) {
+            if (vAB) return E_AB;
+            if (vCD) return E_CD;
+        } else {
+            if (vCD) return E_CD;
+            if (vAB) return E_AB;
+        }
+    }
+    return B; 
+}
+
+double Simplifier::calculateDisplacement(Vertex* vA, Vertex* vB, Vertex* vC, Vertex* vD, const Point& E) {
+    Point A = vA->p, B = vB->p, C = vC->p, D = vD->p;
+
+    auto get_area = [](const vector<Point>& pts) {
+        double a = 0;
+        for (size_t i = 0; i < pts.size(); i++) {
+            Point p1 = pts[i], p2 = pts[(i+1)%pts.size()];
+            a += p1.x * p2.y - p2.x * p1.y;
+        }
+        return a / 2.0;
+    };
+
+    vector<Point> subj = {A, B, C, D};
+    vector<Point> clip = {A, E, D};
+
+    double subj_area = get_area(subj);
+    if (subj_area < 0) { reverse(subj.begin(), subj.end()); subj_area = -subj_area; }
+    
+    double clip_area = get_area(clip);
+    if (clip_area < 0) { reverse(clip.begin(), clip.end()); clip_area = -clip_area; }
+
+    // If the new triangle is nearly degenerate, the displacement is just the area of ABCD
+    if (clip_area < 1e-9) return subj_area + clip_area;
+
+    // Sutherland-Hodgman Polygon Clipping (Clip ABCD against the convex triangle AED)
+    auto inside = [](Point p, Point a, Point b) {
+        return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x) >= -1e-9;
+    };
+
+    auto compute_intersection = [](Point p1, Point p2, Point p3, Point p4) {
+        double a1 = p2.y - p1.y, b1 = p1.x - p2.x, c1 = p1.x*p2.y - p2.x*p1.y;
+        double a2 = p4.y - p3.y, b2 = p3.x - p4.x, c2 = p3.x*p4.y - p4.x*p3.y;
+        double det = a1 * b2 - a2 * b1;
+        if (abs(det) < 1e-9) return p1; // Safe fallback
+        return Point{(c1 * b2 - c2 * b1) / det, (a1 * c2 - a2 * c1) / det};
+    };
+
+    vector<Point> output = subj;
+    for (size_t i = 0; i < clip.size(); i++) {
+        Point edge_start = clip[i];
+        Point edge_end = clip[(i + 1) % clip.size()];
+        vector<Point> input = output;
+        output.clear();
+        if (input.empty()) break;
+
+        Point S = input.back();
+        for (Point P : input) {
+            if (inside(P, edge_start, edge_end)) {
+                if (!inside(S, edge_start, edge_end)) {
+                    output.push_back(compute_intersection(S, P, edge_start, edge_end));
+                }
+                output.push_back(P);
+            } else if (inside(S, edge_start, edge_end)) {
+                output.push_back(compute_intersection(S, P, edge_start, edge_end));
+            }
+            S = P;
+        }
+    }
+
+    double intersection_area = abs(get_area(output));
+    
+    // Displacement Area = Symmetric Difference Area = A + B - 2*(A ∩ B)
+    return subj_area + clip_area - 2 * intersection_area;
+}
+
+void Simplifier::buildQueue() {
+    for (auto& ring : rings) {
+        if (ring.size() <= 3) continue;
+        for (Vertex* B : ring) {
+            Vertex* A = B->prev;
+            Vertex* C = B->next;
+            Vertex* D = C->next;
+
+            Point E = calculateE(A, B, C, D);
+            double disp = calculateDisplacement(A, B, C, D, E);
+            pq.push({B, C, E, disp, B->version, C->version});
+        }
+    }
+}
+
+void Simplifier::simplify(int target_vertices) {
+    double mx = numeric_limits<double>::max(), my = mx, maxx = -mx, maxy = -mx;
+    for(auto& ring : rings) {
+        for(Vertex* v : ring) {
+            mx = min(mx, v->p.x); my = min(my, v->p.y);
+            maxx = max(maxx, v->p.x); maxy = max(maxy, v->p.y);
+        }
+    }
+
+    SpatialGrid grid(mx, my, maxx, maxy, current_vertices);
+    for(auto& ring : rings) {
+        Vertex* curr = ring[0];
+        do {
+            if (curr->active) grid.insert(curr, curr->next);
+            curr = curr->next;
+        } while (curr != ring[0]);
+    }
+
+    while (current_vertices > target_vertices && !pq.empty()) {
+        Candidate cand = pq.top();
+        pq.pop();
+
+        Vertex* B = cand.B;
+        Vertex* C = cand.C;
+
+        if (!B->active || !C->active || cand.version_B != B->version || cand.version_C != C->version) continue; 
+
+        Vertex* A = B->prev;
+        Vertex* D = C->next;
+
+        Point trueE = calculateE(A, B, C, D);
+        double trueDisp = calculateDisplacement(A, B, C, D, trueE);
+
+        if (abs(trueDisp - cand.areal_displacement) > 1e-7) {
+            pq.push({B, C, trueE, trueDisp, B->version, C->version});
+            continue;
+        }
+
+        if (grid.checkIntersection(A->p, trueE, A, B, C) || grid.checkIntersection(trueE, D->p, B, C, D)) continue;
+
+        B->p = trueE;
+        B->version++;
+        A->version++;
+        D->version++;
+
+        total_areal_displacement += trueDisp;
+
+        C->active = false;
+        B->next = D;
+        D->prev = B;
+
+        current_vertices--;
+
+        grid.insert(A->prev, A);
+        grid.insert(A, B);
+        grid.insert(B, D);
+        grid.insert(D, D->next);
+
+        if (A->prev != B && A->prev != D) {
+            Point newE = calculateE(A->prev, A, B, D);
+            pq.push({A, B, newE, calculateDisplacement(A->prev, A, B, D, newE), A->version, B->version});
+        }
+        if (D->next != B && D->next != A) {
+            Point newE = calculateE(B, D, D->next, D->next->next);
+            pq.push({D, D->next, newE, calculateDisplacement(B, D, D->next, D->next->next, newE), D->version, D->next->version});
+        }
+    }
+}
