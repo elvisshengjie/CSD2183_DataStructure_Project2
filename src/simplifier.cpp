@@ -21,61 +21,6 @@ namespace apsc {
             return std::abs(lhs - rhs) <= kEpsilon;
         }
 
-        bool same_point(const Point& lhs, const Point& rhs) {
-            return nearly_equal(lhs.x, rhs.x) && nearly_equal(lhs.y, rhs.y);
-        }
-
-        bool point_on_segment(const Point& point, const Point& a, const Point& b) {
-            return std::min(a.x, b.x) - kEpsilon <= point.x &&
-                point.x <= std::max(a.x, b.x) + kEpsilon &&
-                std::min(a.y, b.y) - kEpsilon <= point.y &&
-                point.y <= std::max(a.y, b.y) + kEpsilon &&
-                nearly_equal(cross(a, b, point), 0.0);
-        }
-
-        bool segments_intersect(
-            const Point& a1,
-            const Point& a2,
-            const Point& b1,
-            const Point& b2) {
-            const double d1 = cross(b1, b2, a1);
-            const double d2 = cross(b1, b2, a2);
-            const double d3 = cross(a1, a2, b1);
-            const double d4 = cross(a1, a2, b2);
-
-            const bool proper_cross =
-                (((d1 > kEpsilon && d2 < -kEpsilon) ||
-                    (d1 < -kEpsilon && d2 > kEpsilon)) &&
-                    ((d3 > kEpsilon && d4 < -kEpsilon) ||
-                        (d3 < -kEpsilon && d4 > kEpsilon)));
-            if (proper_cross) {
-                return true;
-            }
-
-            return (std::abs(d1) < kEpsilon && point_on_segment(a1, b1, b2)) ||
-                (std::abs(d2) < kEpsilon && point_on_segment(a2, b1, b2)) ||
-                (std::abs(d3) < kEpsilon && point_on_segment(b1, a1, a2)) ||
-                (std::abs(d4) < kEpsilon && point_on_segment(b2, a1, a2));
-        }
-
-        bool segment_bounding_boxes_overlap(
-            const Point& a1,
-            const Point& a2,
-            const Point& b1,
-            const Point& b2) {
-            const double a_min_x = std::min(a1.x, a2.x) - kEpsilon;
-            const double a_max_x = std::max(a1.x, a2.x) + kEpsilon;
-            const double a_min_y = std::min(a1.y, a2.y) - kEpsilon;
-            const double a_max_y = std::max(a1.y, a2.y) + kEpsilon;
-            const double b_min_x = std::min(b1.x, b2.x) - kEpsilon;
-            const double b_max_x = std::max(b1.x, b2.x) + kEpsilon;
-            const double b_min_y = std::min(b1.y, b2.y) - kEpsilon;
-            const double b_max_y = std::max(b1.y, b2.y) + kEpsilon;
-
-            return a_min_x <= b_max_x && b_min_x <= a_max_x &&
-                a_min_y <= b_max_y && b_min_y <= a_max_y;
-        }
-
         double point_side_of_line(const Point& point, const Point& a, const Point& b) {
             return cross(a, b, point);
         }
@@ -236,54 +181,6 @@ namespace apsc {
                 std::abs(signed_area_points({ e, c, d }));
         }
 
-        bool check_candidate_topology(
-            const Polygon& polygon,
-            const CollapseCandidate& candidate,
-            const Ring& ring,
-            const std::size_t a_idx,
-            const std::size_t b_idx,
-            const std::size_t c_idx,
-            const std::size_t d_idx,
-            const Point& replacement) {
-            const Point& a = ring.vertices[a_idx];
-            const Point& d = ring.vertices[d_idx];
-
-            for (std::size_t ring_index = 0; ring_index < polygon.rings.size(); ++ring_index) {
-                const Ring& test_ring = polygon.rings[ring_index];
-                const std::size_t n = test_ring.vertices.size();
-
-                for (std::size_t i = 0; i < n; ++i) {
-                    const Point& p1 = test_ring.vertices[i];
-                    const Point& p2 = test_ring.vertices[(i + 1) % n];
-
-                    if (ring_index == static_cast<std::size_t>(candidate.ring_id)) {
-                        const bool is_ab = i == a_idx && (i + 1) % n == b_idx;
-                        const bool is_bc = i == b_idx && (i + 1) % n == c_idx;
-                        const bool is_cd = i == c_idx && (i + 1) % n == d_idx;
-                        const bool is_da = i == d_idx && (i + 1) % n == a_idx;
-                        if (is_ab || is_bc || is_cd || is_da) {
-                            continue;
-                        }
-                        if (same_point(p1, a) || same_point(p2, a) ||
-                            same_point(p1, d) || same_point(p2, d)) {
-                            continue;
-                        }
-                    }
-
-                    if (segment_bounding_boxes_overlap(a, replacement, p1, p2) &&
-                        segments_intersect(a, replacement, p1, p2)) {
-                        return false;
-                    }
-                    if (segment_bounding_boxes_overlap(replacement, d, p1, p2) &&
-                        segments_intersect(replacement, d, p1, p2)) {
-                        return false;
-                    }
-                }
-            }
-
-            return true;
-        }
-
         struct QueueEntry {
             double cost{};
             double replacement_y{};
@@ -296,19 +193,20 @@ namespace apsc {
             int id_d{};
 
             bool operator>(const QueueEntry& other) const {
-                if (cost != other.cost) {
+                // 1. Primary sort: Minimum Areal Displacement (Cost)
+                if (!nearly_equal(cost, other.cost)) {
                     return cost > other.cost;
                 }
-                if (replacement_y != other.replacement_y) {
-                    return replacement_y > other.replacement_y;
+                // 2. Tie-breaker 1: Lower Ring ID
+                if (ring_id != other.ring_id) {
+                    return ring_id > other.ring_id;
                 }
-                if (start_index != other.start_index) {
-                    return start_index < other.start_index;
-                }
+                // 3. Tie-breaker 2: Earlier sequence/index to match greedy order
                 return sequence > other.sequence;
             }
         };
 
+        // Restored helper function!
         double normalized_queue_cost(const double cost) {
             if (std::abs(cost) < kZeroCostEpsilon) {
                 return 0.0;
@@ -566,6 +464,7 @@ namespace apsc {
         return candidate;
     }
 
+    // Fixed topology safety function!
     bool Simplifier::candidate_is_topology_safe(
         const Polygon& polygon,
         const CollapseCandidate& candidate) const {
@@ -574,7 +473,10 @@ namespace apsc {
             return false;
         }
 
-        const Ring& ring = polygon.rings[static_cast<std::size_t>(candidate.ring_id)];
+        // 1. Create a temporary copy to test the collapse
+        Polygon working_polygon = polygon;
+        Ring& ring = working_polygon.rings[static_cast<std::size_t>(candidate.ring_id)];
+        
         if (ring.vertices.size() < 4) {
             return false;
         }
@@ -583,17 +485,20 @@ namespace apsc {
         const std::size_t a = candidate.start_index % n;
         const std::size_t b = (a + 1) % n;
         const std::size_t c = (a + 2) % n;
-        const std::size_t d = (a + 3) % n;
 
-        return check_candidate_topology(
-            polygon,
-            candidate,
-            ring,
-            a,
-            b,
-            c,
-            d,
-            candidate.replacement_point);
+        // 2. Apply the collapse locally (remove B and C, insert E at remove_low)
+        const std::size_t remove_high = std::max(b, c);
+        const std::size_t remove_low = std::min(b, c);
+
+        ring.vertices.erase(ring.vertices.begin() + static_cast<std::ptrdiff_t>(remove_high));
+        ring.vertices.erase(ring.vertices.begin() + static_cast<std::ptrdiff_t>(remove_low));
+        ring.vertices.insert(
+            ring.vertices.begin() + static_cast<std::ptrdiff_t>(remove_low), 
+            candidate.replacement_point
+        );
+
+        // 3. Delegate to your existing robust geometry checker
+        return polygon_topology_is_valid(working_polygon);
     }
 
 }  // namespace apsc
