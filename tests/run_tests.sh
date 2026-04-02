@@ -1,72 +1,63 @@
-#!/bin/bash
-# run_tests.sh — runs all known fixture test cases and reports PASS/FAIL
-#
-# Usage:  bash run_tests.sh
-# Requires: ./simplify binary already built, test files in tests/data/
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Runs all known fixture test cases and reports PASS/FAIL.
+
+cd "$(dirname "$0")/.."
+make
 
 SIMPLIFY="./simplify"
-DATA="tests/data"
+DATA="tests"
 
-# Each entry: "input_filename target_vertices"
 TESTS=(
-    "input_rectangle_with_two_holes.csv    7"
-    "input_cushion_with_hexagonal_hole.csv 13"
-    "input_blob_with_two_holes.csv         17"
-    "input_wavy_with_three_holes.csv       21"
-    "input_lake_with_two_islands.csv       17"
-    "input_original_01.csv                 99"
-    "input_original_02.csv                 99"
-    "input_original_03.csv                 99"
-    "input_original_04.csv                 99"
-    "input_original_05.csv                 99"
-    "input_original_06.csv                 99"
-    "input_original_07.csv                 99"
-    "input_original_08.csv                 99"
-    "input_original_09.csv                 99"
-    "input_original_10.csv                 99"
+    "input_rectangle_with_two_holes.csv 7 output_rectangle_with_two_holes.txt"
+    "input_cushion_with_hexagonal_hole.csv 13 output_cushion_with_hexagonal_hole.txt"
+    "input_blob_with_two_holes.csv 17 output_blob_with_two_holes.txt"
+    "input_wavy_with_three_holes.csv 21 output_wavy_with_three_holes.txt"
+    "input_lake_with_two_islands.csv 17 output_lake_with_two_islands.txt"
+    "input_original_01.csv 99 output_original_01.txt"
+    "input_original_02.csv 99 output_original_02.txt"
+    "input_original_03.csv 99 output_original_03.txt"
+    "input_original_04.csv 99 output_original_04.txt"
+    "input_original_05.csv 99 output_original_05.txt"
+    "input_original_06.csv 99 output_original_06.txt"
+    "input_original_07.csv 99 output_original_07.txt"
+    "input_original_08.csv 99 output_original_08.txt"
+    "input_original_09.csv 99 output_original_09.txt"
+    "input_original_10.csv 99 output_original_10.txt"
 )
 
-PASS=0
-FAIL=0
-SKIP=0
+pass=0
+fail=0
 
 for entry in "${TESTS[@]}"; do
-    input=$(echo $entry | awk '{print $1}')
-    target=$(echo $entry | awk '{print $2}')
+    read -r input target expected <<<"$entry"
 
     input_path="$DATA/$input"
-    expected_path="$DATA/output_${input#input_}"
-    expected_path="${expected_path%.csv}.txt"
+    expected_path="$DATA/$expected"
 
-    # Skip if input file doesn't exist
-    if [ ! -f "$input_path" ]; then
-        echo "SKIP  $input (input file not found)"
-        ((SKIP++))
+    if ! actual="$("$SIMPLIFY" "$input_path" "$target")"; then
+        echo "FAIL  $input  target=$target (program error)"
+        ((fail += 1))
         continue
     fi
 
-    # Skip if expected output doesn't exist
-    if [ ! -f "$expected_path" ]; then
-        echo "SKIP  $input (expected output not found: $expected_path)"
-        ((SKIP++))
-        continue
-    fi
-
-    # Run the simplifier and filter out summary lines (Total signed area, Total areal displacement)
-    actual=$($SIMPLIFY "$input_path" "$target" 2>/dev/null | grep -v "^Total" | grep -v "^$")
-    expected=$(cat "$expected_path" | tr -d '\r')  # strip Windows CRLF
-
-    if [ "$actual" = "$expected" ]; then
+    if diff -u "$expected_path" - >/dev/null <<EOF
+$actual
+EOF
+    then
         echo "PASS  $input  target=$target"
-        ((PASS++))
+        ((pass += 1))
     else
         echo "FAIL  $input  target=$target"
-        echo "      --- first differing lines ---"
-        diff <(echo "$actual") <(echo "$expected") | head -10 | sed 's/^/      /'
-        ((FAIL++))
+        ((fail += 1))
     fi
 done
 
-echo ""
-echo "Results: $PASS passed, $FAIL failed, $SKIP skipped"
-[ $FAIL -eq 0 ] && exit 0 || exit 1
+echo
+echo "Results: $pass passed, $fail failed"
+if [ "$fail" -eq 0 ]; then
+    exit 0
+fi
+
+exit 1

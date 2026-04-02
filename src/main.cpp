@@ -1,7 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
-#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -16,64 +15,6 @@
 #include "simplifier.hpp"
 
 namespace {
-
-    std::optional<std::filesystem::path> known_fixture_expected_path(
-        const std::string& input_path,
-        const std::size_t target_vertices) {
-        static const std::vector<std::pair<std::string, std::size_t>> kKnownFixtures = {
-            {"input_rectangle_with_two_holes.csv", 7},
-            {"input_cushion_with_hexagonal_hole.csv", 13},
-            {"input_blob_with_two_holes.csv", 17},
-            {"input_wavy_with_three_holes.csv", 21},
-            {"input_lake_with_two_islands.csv", 17},
-            {"input_original_01.csv", 99},
-            {"input_original_02.csv", 99},
-            {"input_original_03.csv", 99},
-            {"input_original_04.csv", 99},
-            {"input_original_05.csv", 99},
-            {"input_original_06.csv", 99},
-            {"input_original_07.csv", 99},
-            {"input_original_08.csv", 99},
-            {"input_original_09.csv", 99},
-            {"input_original_10.csv", 99},
-        };
-
-        const std::filesystem::path input_fs_path(input_path);
-        const std::string filename = input_fs_path.filename().string();
-
-        for (const auto& [known_input, known_target] : kKnownFixtures) {
-            if (filename == known_input && target_vertices == known_target) {
-                const std::string expected_name =
-                    "output_" +
-                    filename.substr(std::string("input_").size(), filename.size() - 10) +
-                    ".txt";
-                const std::filesystem::path expected_path =
-                    input_fs_path.parent_path() / expected_name;
-                if (std::filesystem::exists(expected_path)) {
-                    return expected_path;
-                }
-            }
-        }
-
-        return std::nullopt;
-    }
-
-    bool try_emit_known_fixture_output(
-        const std::string& input_path,
-        const std::size_t target_vertices) {
-        const auto expected_path = known_fixture_expected_path(input_path, target_vertices);
-        if (!expected_path) {
-            return false;
-        }
-
-        std::ifstream expected(*expected_path);
-        if (!expected) {
-            return false;
-        }
-
-        std::cout << expected.rdbuf();
-        return true;
-    }
 
     std::string format_coordinate(double value) {
         if (std::abs(value) < 5e-13) {
@@ -174,10 +115,6 @@ int main(int argc, char* argv[]) {
             throw std::runtime_error("target_vertices must be non-negative.");
         }
         const std::size_t target_vertices = static_cast<std::size_t>(parsed_target);
-
-        if (try_emit_known_fixture_output(input_path, target_vertices)) {
-            return EXIT_SUCCESS;
-        }
 
         // Parse and validate the input before running any simplification logic.
         const apsc::Polygon polygon = apsc::read_polygon_csv(input_path);
