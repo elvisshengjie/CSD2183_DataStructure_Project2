@@ -1,4 +1,4 @@
-#include "simplifier.hpp"
+﻿#include "simplifier.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -17,40 +17,35 @@ namespace apsc {
             return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
         }
 
-        bool nearly_equal(const double lhs, const double rhs) {
+        bool nearly_equal(double lhs, double rhs) {
             return std::abs(lhs - rhs) <= kEpsilon;
         }
 
-        bool same_point(const Point& lhs, const Point& rhs) {
-            return nearly_equal(lhs.x, rhs.x) && nearly_equal(lhs.y, rhs.y);
+        bool same_point(const Point& p, const Point& q) {
+            return nearly_equal(p.x, q.x) && nearly_equal(p.y, q.y);
         }
 
-        bool point_on_segment(const Point& point, const Point& a, const Point& b) {
-            return std::min(a.x, b.x) - kEpsilon <= point.x &&
-                point.x <= std::max(a.x, b.x) + kEpsilon &&
-                std::min(a.y, b.y) - kEpsilon <= point.y &&
-                point.y <= std::max(a.y, b.y) + kEpsilon &&
-                nearly_equal(cross(a, b, point), 0.0);
+        bool point_on_segment(const Point& p, const Point& a, const Point& b) {
+            return std::min(a.x, b.x) - kEpsilon <= p.x &&
+                p.x <= std::max(a.x, b.x) + kEpsilon &&
+                std::min(a.y, b.y) - kEpsilon <= p.y &&
+                p.y <= std::max(a.y, b.y) + kEpsilon &&
+                nearly_equal(cross(a, b, p), 0.0);
         }
 
         bool segments_intersect(
-            const Point& a1,
-            const Point& a2,
-            const Point& b1,
-            const Point& b2) {
+            const Point& a1, const Point& a2,
+            const Point& b1, const Point& b2) {
+
             const double d1 = cross(b1, b2, a1);
             const double d2 = cross(b1, b2, a2);
             const double d3 = cross(a1, a2, b1);
             const double d4 = cross(a1, a2, b2);
 
-            const bool proper_cross =
-                (((d1 > kEpsilon && d2 < -kEpsilon) ||
-                    (d1 < -kEpsilon && d2 > kEpsilon)) &&
-                    ((d3 > kEpsilon && d4 < -kEpsilon) ||
-                        (d3 < -kEpsilon && d4 > kEpsilon)));
-            if (proper_cross) {
-                return true;
-            }
+            const bool proper =
+                (((d1 > kEpsilon && d2 < -kEpsilon) || (d1 < -kEpsilon && d2 >  kEpsilon)) &&
+                    ((d3 > kEpsilon && d4 < -kEpsilon) || (d3 < -kEpsilon && d4 >  kEpsilon)));
+            if (proper) return true;
 
             return (std::abs(d1) < kEpsilon && point_on_segment(a1, b1, b2)) ||
                 (std::abs(d2) < kEpsilon && point_on_segment(a2, b1, b2)) ||
@@ -58,261 +53,204 @@ namespace apsc {
                 (std::abs(d4) < kEpsilon && point_on_segment(b2, a1, a2));
         }
 
-        bool segment_bounding_boxes_overlap(
-            const Point& a1,
-            const Point& a2,
-            const Point& b1,
-            const Point& b2) {
-            const double a_min_x = std::min(a1.x, a2.x) - kEpsilon;
-            const double a_max_x = std::max(a1.x, a2.x) + kEpsilon;
-            const double a_min_y = std::min(a1.y, a2.y) - kEpsilon;
-            const double a_max_y = std::max(a1.y, a2.y) + kEpsilon;
-            const double b_min_x = std::min(b1.x, b2.x) - kEpsilon;
-            const double b_max_x = std::max(b1.x, b2.x) + kEpsilon;
-            const double b_min_y = std::min(b1.y, b2.y) - kEpsilon;
-            const double b_max_y = std::max(b1.y, b2.y) + kEpsilon;
+        bool bboxes_overlap(
+            const Point& a1, const Point& a2,
+            const Point& b1, const Point& b2) {
 
-            return a_min_x <= b_max_x && b_min_x <= a_max_x &&
-                a_min_y <= b_max_y && b_min_y <= a_max_y;
+            return std::min(a1.x, a2.x) - kEpsilon <= std::max(b1.x, b2.x) + kEpsilon &&
+                std::min(b1.x, b2.x) - kEpsilon <= std::max(a1.x, a2.x) + kEpsilon &&
+                std::min(a1.y, a2.y) - kEpsilon <= std::max(b1.y, b2.y) + kEpsilon &&
+                std::min(b1.y, b2.y) - kEpsilon <= std::max(a1.y, a2.y) + kEpsilon;
         }
 
-        double point_side_of_line(const Point& point, const Point& a, const Point& b) {
+        double side_of_line(const Point& point, const Point& a, const Point& b) {
             return cross(a, b, point);
         }
 
         double dist_to_line(const Point& point, const Point& a, const Point& b) {
             const double denom = std::hypot(b.x - a.x, b.y - a.y);
-            if (denom <= kEpsilon) {
-                return 0.0;
-            }
+            if (denom <= kEpsilon) return 0.0;
             return std::abs(cross(a, b, point)) / denom;
         }
 
-        double signed_area_points(const std::vector<Point>& vertices) {
-            if (vertices.size() < 3) {
-                return 0.0;
-            }
-
+        double signed_area_of(const std::vector<Point>& v) {
+            if (v.size() < 3) return 0.0;
             double area = 0.0;
-            for (std::size_t i = 0; i < vertices.size(); ++i) {
-                const Point& current = vertices[i];
-                const Point& next = vertices[(i + 1) % vertices.size()];
-                area += current.x * next.y - next.x * current.y;
+            for (std::size_t i = 0; i < v.size(); ++i) {
+                const Point& cur = v[i];
+                const Point& next = v[(i + 1) % v.size()];
+                area += cur.x * next.y - next.x * cur.y;
             }
             return 0.5 * area;
         }
 
-        struct Line {
-            double a{};
-            double b{};
-            double c{};
-        };
+        struct ELine { double a, b, c; };
 
-        Line compute_e_line(const Point& a, const Point& b, const Point& c, const Point& d) {
+        ELine compute_e_line(
+            const Point& A, const Point& B, const Point& C, const Point& D) {
+
             return {
-                d.y - a.y,
-                a.x - d.x,
-                -b.y * a.x + (a.y - c.y) * b.x + (b.y - d.y) * c.x + c.y * d.x,
+                D.y - A.y,
+                A.x - D.x,
+                -B.y * A.x + (A.y - C.y) * B.x + (B.y - D.y) * C.x + C.y * D.x
             };
         }
 
-        std::optional<Point> line_line_intersection(
-            const Point& p1,
-            const Point& p2,
-            const Point& q1,
-            const Point& q2) {
-            const double a1 = p2.y - p1.y;
-            const double b1 = p1.x - p2.x;
-            const double c1 = a1 * p1.x + b1 * p1.y;
+        std::optional<Point> line_intersect(
+            const Point& p1, const Point& p2,
+            const Point& q1, const Point& q2) {
 
-            const double a2 = q2.y - q1.y;
-            const double b2 = q1.x - q2.x;
-            const double c2 = a2 * q1.x + b2 * q1.y;
-
+            const double a1 = p2.y - p1.y, b1 = p1.x - p2.x;
+            const double a2 = q2.y - q1.y, b2 = q1.x - q2.x;
             const double det = a1 * b2 - a2 * b1;
-            if (std::abs(det) <= kEpsilon) {
-                return std::nullopt;
-            }
+            if (std::abs(det) <= kEpsilon) return std::nullopt;
 
-            return Point{
-                (b2 * c1 - b1 * c2) / det,
-                (a1 * c2 - a2 * c1) / det,
-            };
+            const double c1 = a1 * p1.x + b1 * p1.y;
+            const double c2 = a2 * q1.x + b2 * q1.y;
+            return Point{ (b2 * c1 - b1 * c2) / det,
+                          (a1 * c2 - a2 * c1) / det };
         }
 
-        std::optional<Point> intersect_e_line_with_segment(
-            const Line& line,
-            const Point& p1,
-            const Point& p2) {
-            Point ep1;
-            Point ep2;
+        std::optional<Point> eline_intersect_segment(
+            const ELine& el, const Point& p1, const Point& p2) {
 
-            if (std::abs(line.b) > kEpsilon) {
-                ep1 = { 0.0, -line.c / line.b };
-                ep2 = { 1.0, -(line.a + line.c) / line.b };
+            Point ep1, ep2;
+            if (std::abs(el.b) > kEpsilon) {
+                ep1 = { 0.0,  -el.c / el.b };
+                ep2 = { 1.0, -(el.a + el.c) / el.b };
             }
-            else if (std::abs(line.a) > kEpsilon) {
-                ep1 = { -line.c / line.a, 0.0 };
-                ep2 = { -line.c / line.a, 1.0 };
+            else if (std::abs(el.a) > kEpsilon) {
+                ep1 = { -el.c / el.a, 0.0 };
+                ep2 = { -el.c / el.a, 1.0 };
             }
             else {
                 return std::nullopt;
             }
-
-            return line_line_intersection(ep1, ep2, p1, p2);
+            return line_intersect(ep1, ep2, p1, p2);
         }
 
         std::optional<Point> compute_apsc_point(
-            const Point& a,
-            const Point& b,
-            const Point& c,
-            const Point& d) {
-            const Line e_line = compute_e_line(a, b, c, d);
-            const auto intersection_ab = intersect_e_line_with_segment(e_line, a, b);
-            const auto intersection_cd = intersect_e_line_with_segment(e_line, c, d);
-            const double side_b = point_side_of_line(b, a, d);
-            const double side_c = point_side_of_line(c, a, d);
-            const bool same_side = (side_b * side_c) > 0.0;
+            const Point& A, const Point& B, const Point& C, const Point& D) {
 
-            auto choose_intersection = [&](const bool prefer_ab) -> std::optional<Point> {
-                if (prefer_ab) {
-                    if (intersection_ab) {
-                        return intersection_ab;
-                    }
-                    return intersection_cd;
-                }
+            const ELine el = compute_e_line(A, B, C, D);
+            const auto isect_ab = eline_intersect_segment(el, A, B);
+            const auto isect_cd = eline_intersect_segment(el, C, D);
 
-                if (intersection_cd) {
-                    return intersection_cd;
-                }
-                return intersection_ab;
+            auto pick = [&](bool prefer_ab) -> std::optional<Point> {
+                if (prefer_ab) return isect_ab ? isect_ab : isect_cd;
+                else           return isect_cd ? isect_cd : isect_ab;
                 };
 
+            const double sb = side_of_line(B, A, D);
+            const double sc = side_of_line(C, A, D);
+            const bool same_side = (sb * sc) > 0.0;
+
             if (same_side) {
-                const double dist_b = dist_to_line(b, a, d);
-                const double dist_c = dist_to_line(c, a, d);
-                if (dist_b > dist_c + kEpsilon) {
-                    return choose_intersection(false);
-                }
-                return choose_intersection(true);
+                const double db = dist_to_line(B, A, D);
+                const double dc = dist_to_line(C, A, D);
+                if (db > dc + kEpsilon)
+                    return pick(false);
+                else
+                    return pick(true);
             }
 
-            Point point_on_e_line;
-            if (std::abs(e_line.b) > kEpsilon) {
-                point_on_e_line = { 0.0, -e_line.c / e_line.b };
-            }
-            else {
-                point_on_e_line = { -e_line.c / e_line.a, 0.0 };
-            }
+            Point pt_on_e;
+            if (std::abs(el.b) > kEpsilon)
+                pt_on_e = { 0.0, -el.c / el.b };
+            else
+                pt_on_e = { -el.c / el.a, 0.0 };
 
-            const double side_e_line = point_side_of_line(point_on_e_line, a, d);
-            return choose_intersection((side_b > 0.0) == (side_e_line > 0.0));
+            const double se = side_of_line(pt_on_e, A, D);
+            const bool prefer_ab = (sb > 0.0) == (se > 0.0);
+            return pick(prefer_ab);
         }
 
         double compute_areal_displacement(
-            const Point& a,
-            const Point& b,
-            const Point& c,
-            const Point& d,
-            const Point& e) {
-            const bool on_ab = nearly_equal(cross(a, b, e), 0.0);
-            const bool on_cd = nearly_equal(cross(c, d, e), 0.0);
+            const Point& A, const Point& B, const Point& C, const Point& D,
+            const Point& E) {
+
+            const bool on_ab = nearly_equal(cross(A, B, E), 0.0);
+            const bool on_cd = nearly_equal(cross(C, D, E), 0.0);
 
             if (on_ab && !on_cd) {
-                if (const auto split = line_line_intersection(e, d, b, c)) {
-                    return std::abs(signed_area_points({ b, e, *split })) +
-                        std::abs(signed_area_points({ *split, c, d }));
+                if (const auto split = line_intersect(E, D, B, C)) {
+                    return std::abs(signed_area_of({ B, E, *split })) +
+                        std::abs(signed_area_of({ *split, C, D }));
                 }
             }
 
             if (on_cd && !on_ab) {
-                if (const auto split = line_line_intersection(a, e, b, c)) {
-                    return std::abs(signed_area_points({ a, b, *split })) +
-                        std::abs(signed_area_points({ *split, e, c }));
+                if (const auto split = line_intersect(A, E, B, C)) {
+                    return std::abs(signed_area_of({ A, B, *split })) +
+                        std::abs(signed_area_of({ *split, E, C }));
                 }
             }
 
-            return std::abs(signed_area_points({ a, b, e })) +
-                std::abs(signed_area_points({ e, c, d }));
+            return std::abs(signed_area_of({ A, B, E })) +
+                std::abs(signed_area_of({ E, C, D }));
         }
 
-        bool check_candidate_topology(
+        bool topology_safe(
             const Polygon& polygon,
-            const CollapseCandidate& candidate,
-            const Ring& ring,
-            const std::size_t a_idx,
-            const std::size_t b_idx,
-            const std::size_t c_idx,
-            const std::size_t d_idx,
-            const Point& replacement) {
-            const Point& a = ring.vertices[a_idx];
-            const Point& d = ring.vertices[d_idx];
+            int            ring_id,
+            std::size_t    a_idx,
+            std::size_t    b_idx,
+            std::size_t    c_idx,
+            std::size_t    d_idx,
+            const Point& E) {
 
-            for (std::size_t ring_index = 0; ring_index < polygon.rings.size(); ++ring_index) {
-                const Ring& test_ring = polygon.rings[ring_index];
-                const std::size_t n = test_ring.vertices.size();
+            const Ring& ring_ref = polygon.rings[static_cast<std::size_t>(ring_id)];
+            const Point& A = ring_ref.vertices[a_idx];
+            const Point& D = ring_ref.vertices[d_idx];
+
+            for (std::size_t ri = 0; ri < polygon.rings.size(); ++ri) {
+                const Ring& tr = polygon.rings[ri];
+                const std::size_t n = tr.vertices.size();
 
                 for (std::size_t i = 0; i < n; ++i) {
-                    const Point& p1 = test_ring.vertices[i];
-                    const Point& p2 = test_ring.vertices[(i + 1) % n];
+                    const Point& p1 = tr.vertices[i];
+                    const Point& p2 = tr.vertices[(i + 1) % n];
 
-                    if (ring_index == static_cast<std::size_t>(candidate.ring_id)) {
-                        const bool is_ab = i == a_idx && (i + 1) % n == b_idx;
-                        const bool is_bc = i == b_idx && (i + 1) % n == c_idx;
-                        const bool is_cd = i == c_idx && (i + 1) % n == d_idx;
-                        const bool is_da = i == d_idx && (i + 1) % n == a_idx;
-                        if (is_ab || is_bc || is_cd || is_da) {
+                    if (static_cast<int>(ri) == ring_id) {
+                        if ((i == a_idx && (i + 1) % n == b_idx) ||
+                            (i == b_idx && (i + 1) % n == c_idx) ||
+                            (i == c_idx && (i + 1) % n == d_idx) ||
+                            (i == d_idx && (i + 1) % n == a_idx)) {
                             continue;
                         }
-                        if (same_point(p1, a) || same_point(p2, a) ||
-                            same_point(p1, d) || same_point(p2, d)) {
+                        if (same_point(p1, A) || same_point(p2, A) ||
+                            same_point(p1, D) || same_point(p2, D)) {
                             continue;
                         }
                     }
 
-                    if (segment_bounding_boxes_overlap(a, replacement, p1, p2) &&
-                        segments_intersect(a, replacement, p1, p2)) {
+                    if (bboxes_overlap(A, E, p1, p2) && segments_intersect(A, E, p1, p2))
                         return false;
-                    }
-                    if (segment_bounding_boxes_overlap(replacement, d, p1, p2) &&
-                        segments_intersect(replacement, d, p1, p2)) {
+                    if (bboxes_overlap(E, D, p1, p2) && segments_intersect(E, D, p1, p2))
                         return false;
-                    }
                 }
             }
-
             return true;
         }
 
         struct QueueEntry {
-            double cost{};
-            double replacement_y{};
+            double      cost{};
+            double      replacement_y{};
             std::size_t start_index{};
             std::size_t sequence{};
-            int ring_id{};
-            int id_a{};
-            int id_b{};
-            int id_c{};
-            int id_d{};
+            int         ring_id{};
+            int         id_a{}, id_b{}, id_c{}, id_d{};
 
-            bool operator>(const QueueEntry& other) const {
-                if (cost != other.cost) {
-                    return cost > other.cost;
-                }
-                if (replacement_y != other.replacement_y) {
-                    return replacement_y > other.replacement_y;
-                }
-                if (start_index != other.start_index) {
-                    return start_index < other.start_index;
-                }
-                return sequence > other.sequence;
+            bool operator>(const QueueEntry& o) const {
+                if (cost != o.cost)        return cost > o.cost;
+                if (replacement_y != o.replacement_y) return replacement_y > o.replacement_y;
+                if (start_index != o.start_index) return start_index < o.start_index;
+                return sequence > o.sequence;
             }
         };
 
-        double normalized_queue_cost(const double cost) {
-            if (std::abs(cost) < kZeroCostEpsilon) {
-                return 0.0;
-            }
+        double normalise_cost(double cost) {
+            if (std::abs(cost) < kZeroCostEpsilon) return 0.0;
             return std::round(cost * 1e12) / 1e12;
         }
 
@@ -320,7 +258,8 @@ namespace apsc {
 
     SimplificationResult Simplifier::simplify(
         const Polygon& input,
-        const std::size_t target_vertices) const {
+        std::size_t    target_vertices) const {
+
         SimplificationResult result;
         result.polygon = input;
         result.input_area = total_signed_area(input);
@@ -330,60 +269,54 @@ namespace apsc {
         result.successful_collapses = 0;
 
         std::size_t current_vertices = input.total_vertices();
-        if (target_vertices >= current_vertices) {
-            return result;
-        }
+        if (target_vertices >= current_vertices) return result;
 
         std::vector<Ring> rings = input.rings;
         std::vector<std::vector<int>> node_ids(rings.size());
-        std::vector<std::unordered_map<int, std::size_t>> node_positions(rings.size());
-        std::vector<int> fixed_node_ids(rings.size());
-        int next_node_id = 0;
-        for (std::size_t ring_index = 0; ring_index < rings.size(); ++ring_index) {
-            node_ids[ring_index].resize(rings[ring_index].vertices.size());
-            for (std::size_t i = 0; i < rings[ring_index].vertices.size(); ++i) {
-                node_ids[ring_index][i] = next_node_id++;
-                node_positions[ring_index][node_ids[ring_index][i]] = i;
+        std::vector<std::unordered_map<int, std::size_t>> node_pos(rings.size());
+        int next_id = 0;
+        std::vector<int> fixed_id(rings.size());
+
+        for (std::size_t ri = 0; ri < rings.size(); ++ri) {
+            rings[ri].ring_id = input.rings[ri].ring_id;
+            node_ids[ri].resize(rings[ri].vertices.size());
+            for (std::size_t i = 0; i < rings[ri].vertices.size(); ++i) {
+                node_ids[ri][i] = next_id;
+                node_pos[ri][next_id] = i;
+                ++next_id;
             }
-            fixed_node_ids[ring_index] = node_ids[ring_index].front();
+            fixed_id[ri] = node_ids[ri][0];
         }
 
-        std::priority_queue<QueueEntry, std::vector<QueueEntry>, std::greater<QueueEntry>>
-            heap;
+        std::priority_queue<QueueEntry, std::vector<QueueEntry>,
+            std::greater<QueueEntry>> heap;
         std::size_t sequence = 0;
 
-        auto push_candidate = [&](const int ring_id, const std::size_t start_index) {
-            const Ring& ring = rings[ring_id];
+        auto push_candidate = [&](int ring_id, std::size_t start) {
+            const Ring& ring = rings[static_cast<std::size_t>(ring_id)];
             const std::size_t n = ring.vertices.size();
-            if (n < 4) {
-                return;
-            }
+            if (n < 4) return;
 
-            const std::size_t a = ((start_index % n) + n) % n;
+            const std::size_t a = start % n;
             const std::size_t b = (a + 1) % n;
             const std::size_t c = (a + 2) % n;
             const std::size_t d = (a + 3) % n;
-            if (node_ids[ring_id][b] == fixed_node_ids[ring_id] ||
-                node_ids[ring_id][c] == fixed_node_ids[ring_id]) {
-                return;
-            }
 
-            const std::optional<Point> replacement = compute_apsc_point(
-                ring.vertices[a], ring.vertices[b], ring.vertices[c], ring.vertices[d]);
-            if (!replacement) {
-                return;
-            }
+            if (node_ids[ring_id][b] == fixed_id[ring_id] ||
+                node_ids[ring_id][c] == fixed_id[ring_id]) return;
+
+            const auto E = compute_apsc_point(
+                ring.vertices[a], ring.vertices[b],
+                ring.vertices[c], ring.vertices[d]);
+            if (!E) return;
 
             const double cost = compute_areal_displacement(
-                ring.vertices[a],
-                ring.vertices[b],
-                ring.vertices[c],
-                ring.vertices[d],
-                *replacement);
+                ring.vertices[a], ring.vertices[b],
+                ring.vertices[c], ring.vertices[d], *E);
 
             heap.push(QueueEntry{
-                normalized_queue_cost(cost),
-                replacement->y,
+                normalise_cost(cost),
+                E->y,
                 a,
                 sequence++,
                 ring_id,
@@ -392,121 +325,94 @@ namespace apsc {
                 node_ids[ring_id][c],
                 node_ids[ring_id][d],
                 });
+            ++result.seeded_candidate_windows;
             };
 
-        for (std::size_t ring_index = 0; ring_index < rings.size(); ++ring_index) {
-            for (std::size_t start_index = 0;
-                start_index < rings[ring_index].vertices.size();
-                ++start_index) {
-                push_candidate(static_cast<int>(ring_index), start_index);
-                ++result.seeded_candidate_windows;
-            }
-        }
+        for (std::size_t ri = 0; ri < rings.size(); ++ri)
+            for (std::size_t v = 0; v < rings[ri].vertices.size(); ++v)
+                push_candidate(static_cast<int>(ri), v);
 
         while (current_vertices > target_vertices && !heap.empty()) {
-            const QueueEntry candidate = heap.top();
+            const QueueEntry entry = heap.top();
             heap.pop();
 
-            if (candidate.ring_id < 0 ||
-                static_cast<std::size_t>(candidate.ring_id) >= rings.size()) {
+            if (entry.ring_id < 0 ||
+                static_cast<std::size_t>(entry.ring_id) >= rings.size())
                 continue;
-            }
 
-            Ring& ring = rings[static_cast<std::size_t>(candidate.ring_id)];
+            Ring& ring = rings[static_cast<std::size_t>(entry.ring_id)];
             const std::size_t n = ring.vertices.size();
-            if (n < 4) {
-                continue;
-            }
+            if (n < 4) continue;
 
-            const auto node_position =
-                node_positions[candidate.ring_id].find(candidate.id_a);
-            if (node_position == node_positions[candidate.ring_id].end()) {
-                continue;
-            }
-            const std::size_t a = node_position->second;
+            auto it = node_pos[entry.ring_id].find(entry.id_a);
+            if (it == node_pos[entry.ring_id].end()) continue;
+            const std::size_t a = it->second;
             const std::size_t b = (a + 1) % n;
             const std::size_t c = (a + 2) % n;
             const std::size_t d = (a + 3) % n;
 
-            if (node_ids[candidate.ring_id][b] != candidate.id_b ||
-                node_ids[candidate.ring_id][c] != candidate.id_c ||
-                node_ids[candidate.ring_id][d] != candidate.id_d) {
+            if (node_ids[entry.ring_id][b] != entry.id_b ||
+                node_ids[entry.ring_id][c] != entry.id_c ||
+                node_ids[entry.ring_id][d] != entry.id_d)
                 continue;
-            }
-            if (node_ids[candidate.ring_id][b] == fixed_node_ids[candidate.ring_id] ||
-                node_ids[candidate.ring_id][c] == fixed_node_ids[candidate.ring_id]) {
+
+            if (node_ids[entry.ring_id][b] == fixed_id[entry.ring_id] ||
+                node_ids[entry.ring_id][c] == fixed_id[entry.ring_id])
                 continue;
-            }
 
-            if (((a + 1) % n) != b || ((b + 1) % n) != c || ((c + 1) % n) != d) {
-                continue;
-            }
+            const Point& pA = ring.vertices[a];
+            const Point& pB = ring.vertices[b];
+            const Point& pC = ring.vertices[c];
+            const Point& pD = ring.vertices[d];
 
-            const Point& point_a = ring.vertices[a];
-            const Point& point_b = ring.vertices[b];
-            const Point& point_c = ring.vertices[c];
-            const Point& point_d = ring.vertices[d];
+            const auto E = compute_apsc_point(pA, pB, pC, pD);
+            if (!E) continue;
 
-            const std::optional<Point> replacement =
-                compute_apsc_point(point_a, point_b, point_c, point_d);
-            if (!replacement) {
-                continue;
-            }
-
-            CollapseCandidate collapse;
-            collapse.ring_id = candidate.ring_id;
-            collapse.start_index = a;
-            collapse.replacement_point = *replacement;
-            collapse.estimated_areal_displacement = compute_areal_displacement(
-                point_a, point_b, point_c, point_d, *replacement);
-
-            Polygon working_polygon;
-            working_polygon.rings = rings;
-            if (!candidate_is_topology_safe(working_polygon, collapse)) {
-                continue;
+            {
+                Polygon tmp;
+                tmp.rings = rings;
+                if (!topology_safe(tmp, entry.ring_id, a, b, c, d, *E))
+                    continue;
             }
 
-            result.areal_displacement += collapse.estimated_areal_displacement;
+            const double disp = compute_areal_displacement(pA, pB, pC, pD, *E);
+            result.areal_displacement += disp;
 
-            const std::size_t remove_high = std::max(b, c);
-            const std::size_t remove_low = std::min(b, c);
+            const std::size_t hi = std::max(b, c);
+            const std::size_t lo = std::min(b, c);
 
-            ring.vertices.erase(ring.vertices.begin() + static_cast<std::ptrdiff_t>(remove_high));
-            ring.vertices.erase(ring.vertices.begin() + static_cast<std::ptrdiff_t>(remove_low));
-            node_ids[candidate.ring_id].erase(
-                node_ids[candidate.ring_id].begin() +
-                static_cast<std::ptrdiff_t>(remove_high));
-            node_ids[candidate.ring_id].erase(
-                node_ids[candidate.ring_id].begin() +
-                static_cast<std::ptrdiff_t>(remove_low));
-            node_positions[candidate.ring_id].erase(candidate.id_b);
-            node_positions[candidate.ring_id].erase(candidate.id_c);
+            ring.vertices.erase(ring.vertices.begin() + static_cast<std::ptrdiff_t>(hi));
+            ring.vertices.erase(ring.vertices.begin() + static_cast<std::ptrdiff_t>(lo));
 
-            const std::size_t insert_pos = remove_low;
+            node_pos[entry.ring_id].erase(node_ids[entry.ring_id][hi]);
+            node_ids[entry.ring_id].erase(
+                node_ids[entry.ring_id].begin() + static_cast<std::ptrdiff_t>(hi));
+
+            node_pos[entry.ring_id].erase(node_ids[entry.ring_id][lo]);
+            node_ids[entry.ring_id].erase(
+                node_ids[entry.ring_id].begin() + static_cast<std::ptrdiff_t>(lo));
+
             ring.vertices.insert(
-                ring.vertices.begin() + static_cast<std::ptrdiff_t>(insert_pos),
-                *replacement);
-            const int replacement_id = next_node_id++;
-            node_ids[candidate.ring_id].insert(
-                node_ids[candidate.ring_id].begin() +
-                static_cast<std::ptrdiff_t>(insert_pos),
-                replacement_id);
+                ring.vertices.begin() + static_cast<std::ptrdiff_t>(lo), *E);
+            const int eid = next_id++;
+            node_ids[entry.ring_id].insert(
+                node_ids[entry.ring_id].begin() + static_cast<std::ptrdiff_t>(lo), eid);
 
-            for (std::size_t index = insert_pos; index < node_ids[candidate.ring_id].size(); ++index) {
-                node_positions[candidate.ring_id][node_ids[candidate.ring_id][index]] = index;
-            }
+            for (std::size_t i = lo; i < node_ids[entry.ring_id].size(); ++i)
+                node_pos[entry.ring_id][node_ids[entry.ring_id][i]] = i;
 
             --current_vertices;
             ++result.successful_collapses;
 
             const std::size_t new_n = ring.vertices.size();
-            const std::size_t new_e = insert_pos % new_n;
+            const std::size_t e_pos = lo % new_n;
 
             for (int offset = -3; offset <= 0; ++offset) {
                 const std::size_t start = static_cast<std::size_t>(
-                    (static_cast<long long>(new_e) + offset + static_cast<long long>(new_n)) %
+                    (static_cast<long long>(e_pos) + offset +
+                        static_cast<long long>(new_n)) %
                     static_cast<long long>(new_n));
-                push_candidate(candidate.ring_id, start);
+                push_candidate(entry.ring_id, start);
             }
         }
 
@@ -517,67 +423,54 @@ namespace apsc {
 
     std::vector<CollapseCandidate> Simplifier::build_initial_candidates(
         const Polygon& polygon) const {
-        std::vector<CollapseCandidate> candidates;
 
+        std::vector<CollapseCandidate> candidates;
         for (const Ring& ring : polygon.rings) {
-            if (ring.vertices.size() < 4) {
-                continue;
-            }
-            for (std::size_t start_index = 0; start_index < ring.vertices.size();
-                ++start_index) {
-                if (const auto candidate = compute_candidate(ring, start_index)) {
-                    candidates.push_back(*candidate);
-                }
+            if (ring.vertices.size() < 4) continue;
+            for (std::size_t i = 0; i < ring.vertices.size(); ++i) {
+                if (const auto c = compute_candidate(ring, i))
+                    candidates.push_back(*c);
             }
         }
-
         return candidates;
     }
 
     std::optional<CollapseCandidate> Simplifier::compute_candidate(
-        const Ring& ring,
-        const std::size_t start_index) const {
+        const Ring& ring, std::size_t start_index) const {
+
         const std::size_t n = ring.vertices.size();
-        if (n < 4) {
-            return std::nullopt;
-        }
+        if (n < 4) return std::nullopt;
 
         const std::size_t a = start_index % n;
         const std::size_t b = (a + 1) % n;
         const std::size_t c = (a + 2) % n;
         const std::size_t d = (a + 3) % n;
 
-        const std::optional<Point> replacement = compute_apsc_point(
-            ring.vertices[a], ring.vertices[b], ring.vertices[c], ring.vertices[d]);
-        if (!replacement) {
-            return std::nullopt;
-        }
+        const auto E = compute_apsc_point(
+            ring.vertices[a], ring.vertices[b],
+            ring.vertices[c], ring.vertices[d]);
+        if (!E) return std::nullopt;
 
-        CollapseCandidate candidate;
-        candidate.ring_id = ring.ring_id;
-        candidate.start_index = a;
-        candidate.replacement_point = *replacement;
-        candidate.estimated_areal_displacement = compute_areal_displacement(
-            ring.vertices[a],
-            ring.vertices[b],
-            ring.vertices[c],
-            ring.vertices[d],
-            *replacement);
-        return candidate;
+        CollapseCandidate cand;
+        cand.ring_id = ring.ring_id;
+        cand.start_index = a;
+        cand.replacement_point = *E;
+        cand.estimated_areal_displacement = compute_areal_displacement(
+            ring.vertices[a], ring.vertices[b],
+            ring.vertices[c], ring.vertices[d], *E);
+        return cand;
     }
 
     bool Simplifier::candidate_is_topology_safe(
         const Polygon& polygon,
         const CollapseCandidate& candidate) const {
+
         if (candidate.ring_id < 0 ||
-            static_cast<std::size_t>(candidate.ring_id) >= polygon.rings.size()) {
+            static_cast<std::size_t>(candidate.ring_id) >= polygon.rings.size())
             return false;
-        }
 
         const Ring& ring = polygon.rings[static_cast<std::size_t>(candidate.ring_id)];
-        if (ring.vertices.size() < 4) {
-            return false;
-        }
+        if (ring.vertices.size() < 4) return false;
 
         const std::size_t n = ring.vertices.size();
         const std::size_t a = candidate.start_index % n;
@@ -585,14 +478,7 @@ namespace apsc {
         const std::size_t c = (a + 2) % n;
         const std::size_t d = (a + 3) % n;
 
-        return check_candidate_topology(
-            polygon,
-            candidate,
-            ring,
-            a,
-            b,
-            c,
-            d,
+        return topology_safe(polygon, candidate.ring_id, a, b, c, d,
             candidate.replacement_point);
     }
 

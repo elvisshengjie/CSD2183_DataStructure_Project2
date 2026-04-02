@@ -11,7 +11,6 @@
 namespace apsc {
     namespace {
 
-        // Removes surrounding whitespace so CSV parsing is tolerant of minor formatting noise.
         std::string trim(const std::string& value) {
             const auto begin = value.find_first_not_of(" \t\r\n");
             if (begin == std::string::npos) {
@@ -30,21 +29,6 @@ namespace apsc {
             std::ostringstream formatter;
             formatter << std::setprecision(10) << std::defaultfloat << value;
             return formatter.str();
-        }
-
-        // The assignment guarantees the orientation convention, but normalizing here makes the
-        // rest of the code simpler and more robust to slightly inconsistent input files.
-        void normalize_ring_orientation(Polygon& polygon) {
-            for (std::size_t i = 0; i < polygon.rings.size(); ++i) {
-                Ring& ring = polygon.rings[i];
-                const bool should_be_ccw = i == 0;
-                const bool orientation_ok =
-                    should_be_ccw ? is_counter_clockwise(ring) : is_clockwise(ring);
-
-                if (!orientation_ok) {
-                    std::reverse(ring.vertices.begin(), ring.vertices.end());
-                }
-            }
         }
 
     }  // namespace
@@ -94,8 +78,6 @@ namespace apsc {
                 throw std::runtime_error("ring_id must be non-negative.");
             }
 
-            // Rings are created on demand, but only if the file keeps the required contiguous
-            // ring numbering 0, 1, 2, ...
             if (static_cast<std::size_t>(ring_id) >= polygon.rings.size()) {
                 if (ring_id != static_cast<int>(polygon.rings.size())) {
                     throw std::runtime_error("ring_id values must be contiguous and start at 0.");
@@ -104,7 +86,6 @@ namespace apsc {
                 expected_vertex_ids.push_back(0);
             }
 
-            // Each ring must also keep contiguous vertex numbering as required by the brief.
             if (vertex_id != expected_vertex_ids[ring_id]) {
                 throw std::runtime_error("vertex_id values must be contiguous within each ring.");
             }
@@ -123,9 +104,6 @@ namespace apsc {
             }
         }
 
-        // Store rings in a normalized form so downstream geometry code can assume
-        // exterior = counter-clockwise and holes = clockwise.
-        normalize_ring_orientation(polygon);
         return polygon;
     }
 
@@ -135,8 +113,9 @@ namespace apsc {
         double input_area,
         double output_area,
         double areal_displacement) {
+
         out << "ring_id,vertex_id,x,y\n";
-        // The assignment expects rows grouped by ring and vertex ids restarted from 0.
+
         for (const Ring& ring : polygon.rings) {
             for (std::size_t vertex_id = 0; vertex_id < ring.vertices.size(); ++vertex_id) {
                 const Point& point = ring.vertices[vertex_id];
@@ -146,7 +125,6 @@ namespace apsc {
             }
         }
 
-        // The final three report lines must be printed in scientific notation.
         out << std::scientific << std::setprecision(6);
         out << "Total signed area in input: " << input_area << '\n';
         out << "Total signed area in output: " << output_area << '\n';

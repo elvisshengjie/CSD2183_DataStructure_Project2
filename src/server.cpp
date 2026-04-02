@@ -1,4 +1,4 @@
-﻿/*
+/*
  * server.cpp  —  APSC Dashboard HTTP Server (CSD2183 Project 2)
  *
  * Endpoints
