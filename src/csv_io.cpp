@@ -135,22 +135,24 @@ namespace apsc {
         double input_area,
         double output_area,
         double areal_displacement) {
-        out << "ring_id,vertex_id,x,y\n";
+        constexpr auto kLineEnding = "\r\n";
+
+        out << "ring_id,vertex_id,x,y" << kLineEnding;
         // The assignment expects rows grouped by ring and vertex ids restarted from 0.
         for (const Ring& ring : polygon.rings) {
             for (std::size_t vertex_id = 0; vertex_id < ring.vertices.size(); ++vertex_id) {
                 const Point& point = ring.vertices[vertex_id];
                 out << ring.ring_id << ',' << vertex_id << ','
                     << format_coordinate(point.x) << ','
-                    << format_coordinate(point.y) << '\n';
+                    << format_coordinate(point.y) << kLineEnding;
             }
         }
 
         // The final three report lines must be printed in scientific notation.
         out << std::scientific << std::setprecision(6);
-        out << "Total signed area in input: " << input_area << '\n';
-        out << "Total signed area in output: " << output_area << '\n';
-        out << "Total areal displacement: " << areal_displacement << '\n';
+        out << "Total signed area in input: " << input_area << kLineEnding;
+        out << "Total signed area in output: " << output_area << kLineEnding;
+        out << "Total areal displacement: " << areal_displacement << kLineEnding;
     }
 
 }  // namespace apsc
