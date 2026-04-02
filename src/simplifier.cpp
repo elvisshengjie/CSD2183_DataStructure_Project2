@@ -144,7 +144,7 @@ namespace apsc {
 
             const double sb = side_of_line(B, A, D);
             const double sc = side_of_line(C, A, D);
-            const bool same_side = (sb > kEpsilon && sc > kEpsilon) || (sb < -kEpsilon && sc < -kEpsilon);
+            const bool same_side = (sb * sc) > 0.0;
 
             if (same_side) {
                 const double db = dist_to_line(B, A, D);
@@ -242,9 +242,9 @@ namespace apsc {
             int         ring_id{};
             int         id_a{}, id_b{}, id_c{}, id_d{};
 
-          bool operator>(const QueueEntry& o) const {
-    if (cost != o.cost) return cost > o.cost;
-    return sequence > o.sequence;
+            bool operator>(const QueueEntry& o) const {
+            if (cost != o.cost) return cost > o.cost;
+            return sequence > o.sequence;
 }
         };
 
@@ -314,7 +314,7 @@ namespace apsc {
                 ring.vertices[c], ring.vertices[d], *E);
 
             heap.push(QueueEntry{
-                cost,
+                normalise_cost(cost),
                 E->y,
                 a,
                 sequence++,
