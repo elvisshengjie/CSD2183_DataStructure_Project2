@@ -3,83 +3,132 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
-using namespace std;
+namespace apsc {
+    namespace {
 
-namespace CSV_IO {
-
-    void loadCSV(const string& filename, vector<vector<Vertex*>>& rings, double& initial_signed_area, int& current_vertices) {
-        ifstream file(filename);
-        string line;
-        getline(file, line); // Skip header
-
-        int current_ring = -1;
-        vector<Vertex*> current_ring_vertices;
-
-        while (getline(file, line)) {
-            stringstream ss(line);
-            string token;
-            int r_id, v_id;
-            double x, y;
-
-            getline(ss, token, ','); r_id = stoi(token);
-            getline(ss, token, ','); v_id = stoi(token);
-            getline(ss, token, ','); x = stod(token);
-            getline(ss, token, ','); y = stod(token);
-
-            if (r_id != current_ring) {
-                if (!current_ring_vertices.empty()) rings.push_back(current_ring_vertices);
-                current_ring_vertices.clear();
-                current_ring = r_id;
+        std::string trim(const std::string& value) {
+            const auto begin = value.find_first_not_of(" \t\r\n");
+            if (begin == std::string::npos) {
+                return "";
             }
-            Vertex* v = new Vertex(v_id, r_id, {x, y});
-            current_ring_vertices.push_back(v);
-            current_vertices++;
-        }
-        if (!current_ring_vertices.empty()) rings.push_back(current_ring_vertices);
 
-        for (auto& ring : rings) {
-            int n = ring.size();
-            vector<Point> pts;
-            for (int i = 0; i < n; i++) {
-                ring[i]->prev = ring[(i - 1 + n) % n];
-                ring[i]->next = ring[(i + 1) % n];
-                pts.push_back(ring[i]->p);
-            }
-            initial_signed_area += polygonArea(pts);
+            const auto end = value.find_last_not_of(" \t\r\n");
+            return value.substr(begin, end - begin + 1);
         }
+
+        std::string format_coordinate(double value) {
+            if (std::abs(value) < 5e-13) {
+                value = 0.0;
+            }
+
+            std::ostringstream formatter;
+            formatter << std::setprecision(10) << std::defaultfloat << value;
+            return formatter.str();
+        }
+
+    }  // namespace
+
+    Polygon read_polygon_csv(const std::string& path) {
+        std::ifstream input(path);
+        if (!input) {
+            throw std::runtime_error("Failed to open input file: " + path);
+        }
+
+        std::string line;
+        if (!std::getline(input, line)) {
+            throw std::runtime_error("Input file is empty: " + path);
+        }
+
+        if (trim(line) != "ring_id,vertex_id,x,y") {
+            throw std::runtime_error("Unexpected CSV header. Expected: ring_id,vertex_id,x,y");
+        }
+
+        Polygon polygon;
+        std::vector<int> expected_vertex_ids;
+
+        while (std::getline(input, line)) {
+            if (trim(line).empty()) {
+                continue;
+            }
+
+            std::stringstream row(line);
+            std::string ring_id_text;
+            std::string vertex_id_text;
+            std::string x_text;
+            std::string y_text;
+
+            if (!std::getline(row, ring_id_text, ',') ||
+                !std::getline(row, vertex_id_text, ',') ||
+                !std::getline(row, x_text, ',') ||
+                !std::getline(row, y_text, ',')) {
+                throw std::runtime_error("Malformed CSV row: " + line);
+            }
+
+            const int ring_id = std::stoi(trim(ring_id_text));
+            const int vertex_id = std::stoi(trim(vertex_id_text));
+            const double x = std::stod(trim(x_text));
+            const double y = std::stod(trim(y_text));
+
+            if (ring_id < 0) {
+                throw std::runtime_error("ring_id must be non-negative.");
+            }
+
+            if (static_cast<std::size_t>(ring_id) >= polygon.rings.size()) {
+                if (ring_id != static_cast<int>(polygon.rings.size())) {
+                    throw std::runtime_error("ring_id values must be contiguous and start at 0.");
+                }
+                polygon.rings.push_back(Ring{ ring_id, {} });
+                expected_vertex_ids.push_back(0);
+            }
+
+            if (vertex_id != expected_vertex_ids[ring_id]) {
+                throw std::runtime_error("vertex_id values must be contiguous within each ring.");
+            }
+
+            polygon.rings[ring_id].vertices.push_back(Point{ x, y });
+            ++expected_vertex_ids[ring_id];
+        }
+
+        if (polygon.rings.empty()) {
+            throw std::runtime_error("The input polygon contains no rings.");
+        }
+
+        for (const Ring& ring : polygon.rings) {
+            if (ring.vertices.size() < 3) {
+                throw std::runtime_error("Each ring must contain at least 3 vertices.");
+            }
+        }
+
+        return polygon;
     }
 
-    void printOutput(const vector<vector<Vertex*>>& rings, double initial_signed_area, double total_areal_displacement) {
-        double final_signed_area = 0;
+    void write_polygon_csv(
+        std::ostream& out,
+        const Polygon& polygon,
+        double input_area,
+        double output_area,
+        double areal_displacement) {
 
-        cout << "ring_id,vertex_id,x,y\n";
-        int out_ring_id = 0;
-        
-        for (const auto& ring : rings) {
-            vector<Point> final_ring;
-            Vertex* curr = ring[0];
-            while(curr && !curr->active) curr = curr->next;
-            if (!curr) continue;
+        out << "ring_id,vertex_id,x,y\n";
 
-            Vertex* start = curr;
-            int v_id = 0;
-            do {
-                if (curr->active) {
-                    cout << out_ring_id << "," << v_id++ << "," << curr->p.x << "," << curr->p.y << "\n";
-                    final_ring.push_back(curr->p);
-                }
-                curr = curr->next;
-            } while (curr != start);
-            
-            final_signed_area += polygonArea(final_ring);
-            out_ring_id++;
+        for (const Ring& ring : polygon.rings) {
+            for (std::size_t vertex_id = 0; vertex_id < ring.vertices.size(); ++vertex_id) {
+                const Point& point = ring.vertices[vertex_id];
+                out << ring.ring_id << ',' << vertex_id << ','
+                    << format_coordinate(point.x) << ','
+                    << format_coordinate(point.y) << '\n';
+            }
         }
-        
-        cout << scientific << setprecision(6);
-        cout << "Total signed area in input: " << initial_signed_area << "\n"; 
-        cout << "Total signed area in output: " << final_signed_area << "\n";
-        cout << "Total areal displacement: " << total_areal_displacement << "\n";
+
+        out << std::scientific << std::setprecision(6);
+        out << "Total signed area in input: " << input_area << '\n';
+        out << "Total signed area in output: " << output_area << '\n';
+        out << "Total areal displacement: " << areal_displacement << '\n';
     }
 
     void cleanup(vector<vector<Vertex*>>& rings) {

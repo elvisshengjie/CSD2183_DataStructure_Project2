@@ -1,27 +1,47 @@
-#ifndef SIMPLIFIER_H
-#define SIMPLIFIER_H
+#ifndef SIMPLIFIER_HPP
+#define SIMPLIFIER_HPP
 
-#include "geometry.hpp"
+#include <cstddef>
+#include <optional>
 #include <vector>
-#include <queue>
+#include "geometry.hpp"
 
+namespace apsc {
 
-class Simplifier {
-private:
-    std::vector<std::vector<Vertex*>>& rings;
-    std::priority_queue<Candidate, std::vector<Candidate>, std::greater<Candidate>> pq;
-    int current_vertices;
-    double total_areal_displacement;
+    struct CollapseCandidate {
+        int ring_id = -1;
+        std::size_t start_index = 0;
+        Point replacement_point;
+        double estimated_areal_displacement = 0.0;
+    };
 
-    Point calculateE(Vertex* vA, Vertex* vB, Vertex* vC, Vertex* vD);
-    double calculateDisplacement(Vertex* vA, Vertex* vB, Vertex* vC, Vertex* vD, const Point& E);
-    void buildQueue();
+    struct SimplificationResult {
+        Polygon polygon;
+        double input_area = 0.0;
+        double output_area = 0.0;
+        double areal_displacement = 0.0;
+        std::size_t seeded_candidate_windows = 0;
+        std::size_t successful_collapses = 0;
+    };
 
-public:
-    Simplifier(std::vector<std::vector<Vertex*>>& input_rings, int initial_vertices);
-    
-    void simplify(int target_vertices);
-    double getTotalDisplacement() const;
-};
+    class Simplifier {
+    public:
+        SimplificationResult simplify(
+            const Polygon& input,
+            std::size_t    target_vertices) const;
 
-#endif // SIMPLIFIER_H
+        std::vector<CollapseCandidate> build_initial_candidates(
+            const Polygon& polygon) const;
+
+        std::optional<CollapseCandidate> compute_candidate(
+            const Ring& ring,
+            std::size_t start_index) const;
+
+        bool candidate_is_topology_safe(
+            const Polygon& polygon,
+            const CollapseCandidate& candidate) const;
+    };
+
+}  // namespace apsc
+
+#endif

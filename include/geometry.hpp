@@ -1,41 +1,40 @@
-﻿#ifndef GEOMETRY_H
-#define GEOMETRY_H
+﻿#ifndef GEOMETRY_HPP
+#define GEOMETRY_HPP
 
 #include <vector>
 
-// --- GEOMETRY PRIMITIVES ---
-struct Point {
-    double x, y;
-    bool operator==(const Point& other) const;
-};
+namespace apsc {
 
-// --- DOUBLY LINKED LIST NODE (DCEL approach) ---
-struct Vertex {
-    int id;
-    int ring_id;
-    Point p;
-    Vertex* prev;
-    Vertex* next;
-    bool active;
-    int version; // Tracks changes for the lazy priority queue
+    struct Point {
+        double x = 0.0;
+        double y = 0.0;
+    };
 
-    Vertex(int i, int r, Point pt);
-};
+    struct Segment {
+        Point a;
+        Point b;
+    };
 
-// --- CANDIDATE FOR PRIORITY QUEUE ---
-struct Candidate {
-    Vertex* B;
-    Vertex* C;
-    Point E;
-    double areal_displacement;
-    int version_B;
-    int version_C;
+    struct Ring {
+        int ring_id = -1;
+        std::vector<Point> vertices;
+    };
 
-    bool operator>(const Candidate& other) const;
-};
+    struct Polygon {
+        std::vector<Ring> rings;
 
-// --- GEOMETRY UTILITIES ---
-double crossProduct(const Point& a, const Point& b, const Point& c);
-double polygonArea(const std::vector<Point>& ring);
+        std::size_t total_vertices() const;
+    };
 
-#endif // GEOMETRY_H
+    double signed_area(const Ring& ring);
+    double total_signed_area(const Polygon& polygon);
+
+    bool is_counter_clockwise(const Ring& ring);
+    bool is_clockwise(const Ring& ring);
+
+    bool ring_is_simple(const Ring& ring);
+    bool polygon_topology_is_valid(const Polygon& polygon);
+
+}  // namespace apsc
+
+#endif
