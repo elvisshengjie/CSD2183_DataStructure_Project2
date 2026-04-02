@@ -131,11 +131,4 @@ namespace apsc {
         out << "Total areal displacement: " << areal_displacement << '\n';
     }
 
-    void cleanup(vector<vector<Vertex*>>& rings) {
-        for (auto& ring : rings) {
-            for (Vertex* v : ring) {
-                delete v;
-            }
-        }
-    }
 }

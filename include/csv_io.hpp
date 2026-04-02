@@ -1,6 +1,8 @@
 #ifndef CSV_IO_H
 #define CSV_IO_H
 
+#include <string>
+#include <ostream>
 #include "geometry.hpp"
 
 namespace apsc {
@@ -19,3 +21,5 @@ namespace apsc {
         double          areal_displacement);
 
 }  // namespace apsc
+
+#endif  // CSV_IO_H
