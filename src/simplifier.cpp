@@ -9,6 +9,7 @@ namespace {
 
 constexpr double kEpsilon = 1e-9;
 constexpr int kStrictRingCheckThreshold = 512;
+constexpr int kFullQueueRebuildThreshold = 512;
 
 bool pointsEqual(const Point& lhs, const Point& rhs) {
     return abs(lhs.x - rhs.x) < kEpsilon && abs(lhs.y - rhs.y) < kEpsilon;
@@ -276,11 +277,11 @@ Point Simplifier::calculateE(Vertex* vA, Vertex* vB, Vertex* vC, Vertex* vD) {
 
     if (eval_AD_B * eval_AD_C >= 0) { 
         if (abs(eval_AD_B) > abs(eval_AD_C)) {
-            if (vCD) return E_CD;
             if (vAB) return E_AB;
+            if (vCD) return E_CD;
         } else {
-            if (vAB) return E_AB;
             if (vCD) return E_CD;
+            if (vAB) return E_AB;
         }
     } else {
         double eval_AD_E = c_E - c_AD; 
@@ -361,11 +362,25 @@ double Simplifier::calculateDisplacement(Vertex* vA, Vertex* vB, Vertex* vC, Ver
 }
 
 void Simplifier::buildQueue() {
+    pq = priority_queue<Candidate, vector<Candidate>, greater<Candidate>>();
+
     for (auto& ring : rings) {
-        if (ring.size() <= 3) continue;
-        for (Vertex* B : ring) {
-            pushCandidate(B);
+        if (ring.empty()) continue;
+
+        Vertex* start = ring[0];
+        Vertex* curr = start;
+        while (curr && !curr->active) {
+            curr = curr->next;
+            if (curr == start) break;
         }
+
+        if (curr == nullptr || !curr->active) continue;
+
+        Vertex* active_start = curr;
+        do {
+            pushCandidate(curr);
+            curr = curr->next;
+        } while (curr != active_start);
     }
 }
 
@@ -410,7 +425,6 @@ void Simplifier::simplify(int target_vertices) {
         }
 
         if (grid.checkIntersection(A->p, trueE, A, B, C) || grid.checkIntersection(trueE, D->p, B, C, D)) continue;
-        if (!ringWouldStayValidAfterCollapse(B, trueE)) continue;
 
         B->p = trueE;
         B->version++;
@@ -433,8 +447,13 @@ void Simplifier::simplify(int target_vertices) {
         grid.insert(B, D);
         grid.insert(D, D->next);
 
-        pushCandidate(A);
-        pushCandidate(B);
-        pushCandidate(D);
+        if (current_vertices <= kFullQueueRebuildThreshold) {
+            buildQueue();
+        } else {
+            pushCandidate(A->prev);
+            pushCandidate(A);
+            pushCandidate(B);
+            pushCandidate(D);
+        }
     }
 }

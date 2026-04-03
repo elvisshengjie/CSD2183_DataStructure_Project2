@@ -43,41 +43,43 @@ namespace CSV_IO {
             const vector<vector<Vertex*>>& rings,
             double fallback_value
         ) {
-            filesystem::path temp_output =
-                filesystem::temp_directory_path() / "simplify_exact_displacement_output.csv";
-            filesystem::path temp_metric =
-                filesystem::temp_directory_path() / "simplify_exact_displacement_value.txt";
-            writeGeometryCSV(rings, temp_output);
-
-            ostringstream cmd;
-            cmd << "sh tools/compute_symdiff_area.sh "
-                << quoted(input_file) << " "
-                << quoted(temp_output.string())
-                << " > " << quoted(temp_metric.string())
-                << " 2>/dev/null";
-
-            int status = system(cmd.str().c_str());
             std::error_code ec;
-            if (status != 0) {
+            for (int attempt = 0; attempt < 2; ++attempt) {
+                filesystem::path temp_output =
+                    filesystem::temp_directory_path() / ("simplify_exact_displacement_output_" + to_string(attempt) + ".csv");
+                filesystem::path temp_metric =
+                    filesystem::temp_directory_path() / ("simplify_exact_displacement_value_" + to_string(attempt) + ".txt");
+                writeGeometryCSV(rings, temp_output);
+
+                ostringstream cmd;
+                cmd << "sh tools/compute_symdiff_area.sh "
+                    << quoted(input_file) << " "
+                    << quoted(temp_output.string())
+                    << " > " << quoted(temp_metric.string())
+                    << " 2>/dev/null";
+
+                int status = system(cmd.str().c_str());
+                if (status != 0) {
+                    filesystem::remove(temp_output, ec);
+                    filesystem::remove(temp_metric, ec);
+                    continue;
+                }
+
+                ifstream in(temp_metric);
+                string output;
+                getline(in, output);
+
                 filesystem::remove(temp_output, ec);
                 filesystem::remove(temp_metric, ec);
-                return fallback_value;
+
+                try {
+                    return stod(output);
+                } catch (...) {
+                    continue;
+                }
             }
 
-            ifstream in(temp_metric);
-            string output;
-            getline(in, output);
-
-            try {
-                double parsed = stod(output);
-                filesystem::remove(temp_output, ec);
-                filesystem::remove(temp_metric, ec);
-                return parsed;
-            } catch (...) {
-                filesystem::remove(temp_output, ec);
-                filesystem::remove(temp_metric, ec);
-                return fallback_value;
-            }
+            return fallback_value;
         }
 
         double displacementFromOriginalChains(const vector<vector<Vertex*>>& rings) {
