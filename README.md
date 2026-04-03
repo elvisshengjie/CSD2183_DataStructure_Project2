@@ -1,232 +1,349 @@
-# CSD2183 Data Structures Project 2
+﻿# CSD2183 Data Structures — Project 2
+## Area- and Topology-Preserving Polygon Simplification
 
-Area- and topology-preserving polygon simplification in C++17 using an APSC-style greedy
-collapse loop with linked-ring updates, a priority queue for candidate selection, and a spatial
-grid for fast intersection checks.
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+![C++17](https://img.shields.io/badge/C%2B%2B-17-blue)
+![License](https://img.shields.io/badge/license-academic-lightgrey)
 
-## Current Status
+---
 
-This repository now contains a working `simplify` executable rather than the original starter-only
-baseline. The current implementation:
+## What This Project Does
 
-- reads `./simplify <input_file.csv> <target_vertices>`
-- preserves the signed area of each ring within floating-point tolerance
-- preserves ring count and ring orientation
-- avoids self-intersections and ring-ring intersections on the tested datasets
-- reports total signed area and total areal displacement in scientific notation
-- uses a priority queue plus versioning to lazily invalidate stale collapse candidates
-- uses a spatial grid to accelerate intersection checks
+This program simplifies a planar polygon — one outer boundary with zero or more
+holes — by reducing the number of boundary vertices while satisfying three hard
+constraints:
 
-The project also includes:
+| Constraint | Description |
+|---|---|
+| **Area preservation** | The signed area of every ring (outer boundary and each hole) is preserved exactly within floating-point tolerance. |
+| **Topology preservation** | No ring may self-intersect, and no two rings may cross each other. The ring count stays the same. |
+| **Minimum areal displacement** | Among all valid simplifications, the algorithm greedily minimises the total area "moved" by the boundary changes. |
 
-- smoke tests
-- reference-file comparisons
-- rubric-aligned geometric validation
-- custom challenge datasets
-- a benchmark runner for runtime and peak memory measurements
+### Why Does This Matter?
+
+Geographic information systems (GIS), web mapping platforms, and real-time game
+worlds all use polygons to represent territories, buildings, and navigation areas.
+Complex polygons with thousands of vertices are slow to render, transmit, and query.
+Simplifying them while keeping area exact preserves land-use statistics, tax parcel
+areas, and simulation metrics — the shapes look different but their measured
+properties are unchanged.
+
+---
+
+## Algorithm Overview (APSC)
+
+The core algorithm is **Area-Preserving Segment Collapse (APSC)** from
+Kronenfeld et al. (2020). Here is an intuitive explanation:
+
+```
+Original ring: ... → A → B → C → D → ...
+                          ↑
+                     Remove B and C,
+                     replace with new vertex E
+Simplified ring: ... → A → E → D → ...
+```
+
+**Step 1 — Find E:** E is placed so that the signed area of the ring is unchanged.
+This reduces to a linear equation: E must lie on a specific line derived from the
+shoelace-area formula applied to the quadrilateral A–B–C–D. E is found by
+intersecting that area-constraint line with either line AB or line CD.
+
+**Step 2 — Measure displacement:** The areal displacement of this collapse is the
+area of the symmetric difference between quadrilateral ABCD and triangle AED
+(computed via Sutherland-Hodgman polygon clipping).
+
+**Step 3 — Greedy selection:** All possible collapses are ranked by displacement in
+a min-heap (priority queue). The cheapest valid collapse is applied first.
+
+**Step 4 — Topology check:** Before committing any collapse, the two new edges
+(A–E and E–D) are tested against all other segments using a spatial grid. If
+either new edge intersects any existing edge, the collapse is rejected.
+
+**Step 5 — Repeat:** After each collapse, only the four locally affected candidates
+need to be updated in the heap (lazy incremental update). Repeat until the target
+vertex count is reached or no valid collapse exists.
+
+---
+
+## Data Structures Used
+
+| Structure | Purpose | Complexity |
+|---|---|---|
+| Doubly-linked circular list (per ring) | O(1) vertex removal and re-linking after each collapse | O(1) collapse |
+| Min-heap (priority_queue) with version stamps | Lazy invalidation of stale candidates without a decrease-key operation | O(log n) per pop |
+| Spatial hash grid | Accelerate intersection checks; segments are indexed by bounding-box cells | O(√n) avg per query |
+| Original-chain tracking | Track intermediate removed vertices for exact displacement bookkeeping | O(1) per collapse |
+
+**Version stamping** is the key heap optimisation: every Candidate in the heap
+stores the version numbers of vertices B and C at push time. When a collapse
+moves B or updates its neighbours, those vertices' version counters increment.
+A stale candidate popped from the heap has mismatched versions and is simply
+discarded — no expensive heap restructuring needed.
+
+---
 
 ## Build
 
-Build on Linux, macOS, or WSL:
+### Requirements
+
+- `g++` with C++17 support (GCC 7+ or Clang 5+)
+- `make`
+- Unix-like system: Linux, macOS, or Windows Subsystem for Linux (WSL)
+
+### Optional (for exact symmetric-difference displacement reporting)
+
+- Python 3 with `shapely`:
+  ```bash
+  pip install shapely
+  ```
+
+### Build the executable
 
 ```bash
+git clone <your-repo-url>
+cd <repo-root>
 make
 ```
 
-This creates:
+This produces `./simplify` in the repository root.
 
-```bash
-./simplify
-```
+---
 
 ## Run
 
 ```bash
-./simplify tests/data/example_input.csv 12
+./simplify <input_file.csv> <target_vertices>
 ```
 
-Output format:
+### Examples
 
-- `ring_id,vertex_id,x,y`
-- one CSV row per output vertex
-- three summary lines:
-  - `Total signed area in input: ...`
-  - `Total signed area in output: ...`
-  - `Total areal displacement: ...`
+```bash
+# Simplify to at most 12 vertices
+./simplify tests/data/example_input.csv 12
 
-Debug or status text should go to standard error, not standard output.
+# Simplify a large polygon to 5000 vertices
+./simplify tests/data/large_polygon.csv 5000
+```
+
+### Input CSV Format
+
+```
+ring_id,vertex_id,x,y
+0,0,-0.5,-1.0
+0,1,1.5,-1.0
+0,2,1.5,1.0
+0,3,-0.5,1.0
+1,0,-0.2,0.5
+1,1,0.5,0.5
+1,2,0.5,-0.5
+```
+
+- `ring_id = 0` is the **exterior ring** (counterclockwise orientation).
+- `ring_id >= 1` are **interior rings / holes** (clockwise orientation).
+- Vertices within each ring are listed in order; the ring is implicitly closed
+  (last vertex connects back to first — do **not** repeat the first vertex).
+
+### Output Format
+
+```
+ring_id,vertex_id,x,y
+0,0,-0.5,-1
+0,1,1.5,-1
+...
+Total signed area in input: 3.210000000000000e+00
+Total signed area in output: 3.210000000000000e+00
+Total areal displacement: 1.600000000000000e-02
+```
+
+- Vertices are listed in ring order, ring IDs starting at 0.
+- Three summary lines in scientific notation follow all vertex rows.
+- Debug/log messages go to **standard error**, not standard output.
+
+---
 
 ## Test Results
 
 ### Smoke Test
 
-PowerShell:
+```bash
+# Linux / macOS / WSL
+bash tests/run_smoke_test.sh
 
-```powershell
+# PowerShell (Windows)
 powershell -ExecutionPolicy Bypass -File tests/run_smoke_test.ps1
 ```
 
-Local result:
-
-```text
+Expected result:
+```
 Smoke test passed.
 ```
 
 ### Rubric-Aligned Validation
 
-PowerShell:
+This validator checks all correctness criteria from the project rubric:
 
-```powershell
+```bash
 powershell -ExecutionPolicy Bypass -File tests/run_rubric_checks.ps1
 ```
 
-What this checks:
+What is checked:
+- **Ring count** — output has same number of rings as input.
+- **Per-ring signed area** — each ring's area matches input within 1e-9 tolerance.
+- **Orientation** — exterior ring counterclockwise, holes clockwise.
+- **Self-intersection** — no ring self-intersects.
+- **Ring-ring intersection** — no two rings cross each other.
+- **Metric consistency** — reported input and output areas match computed values.
+- **Vertex count** — output vertex count is at or below the requested target.
 
-- ring count preservation
-- per-ring signed-area preservation
-- output ring orientation
-- self-intersection and ring-ring intersection failures
-- output metric consistency
-- whether the output stays above the requested target
-
-Local result:
-
-```text
+Expected result:
+```
 All rubric checks passed.
 ```
 
-### Reference-File Comparison
+### Reference File Comparison
 
-PowerShell:
-
-```powershell
+```bash
 powershell -ExecutionPolicy Bypass -File tests/run_fixture_tests.ps1
 ```
 
-Note:
+> **Note:** The teaching team's clarification states that exact coordinate-by-coordinate
+> matching is not required; the rubric-aligned validator is the primary correctness check.
+> The fixture comparison is provided as a regression tool.
 
-- the teaching-team clarification says exact coordinate-by-coordinate matching is not required
-- the rubric-aligned validator is therefore the more meaningful correctness check for grading
-- the fixture diff is still useful as a stricter regression check
+---
 
 ## Custom Challenge Datasets
 
-Additional datasets live in [tests/custom/README.md]
-
-Included custom cases:
-
-- `input_narrow_corridor_with_two_holes.csv`
-  Targets narrow gaps between holes and the exterior ring, where valid collapses can easily create
-  intersections if topology checks are too weak.
-- `input_spiky_star_80.csv`
-  Targets oscillating boundaries with alternating spikes and many local collapse candidates.
-- `input_grid_with_nine_holes.csv`
-  Targets multi-ring handling and repeated intersection checks across many interior rings.
-- `input_high_vertex_wavy_ring_720.csv`
-  Targets high vertex count and gives a cleaner scaling point for runtime and peak-memory plots.
-- `input_near_degenerate_corrugated_strip_122.csv`
-  Targets near-degenerate thin geometry with many almost-collinear edges, which is useful for
-  floating-point robustness and metric-consistency checks.
-
-Generate or regenerate them with:
+Five custom datasets are included in `tests/custom/` to stress-test specific
+aspects of the implementation. Generate or regenerate them with:
 
 ```bash
-python tests/custom/generate_custom_datasets.py
+python3 tests/custom/generate_custom_datasets.py
 ```
+
+| Dataset | What It Tests |
+|---|---|
+| `input_narrow_corridor_with_two_holes.csv` | Narrow gaps between holes and exterior ring; easy to create crossings if topology checks are weak. |
+| `input_spiky_star_80.csv` | 80-vertex star with alternating spikes; many near-equal-displacement candidates that stress the heap. |
+| `input_grid_with_nine_holes.csv` | Nine interior rings; tests multi-ring bookkeeping and repeated spatial index queries. |
+| `input_high_vertex_wavy_ring_720.csv` | 720-vertex wavy boundary; primary runtime scaling benchmark point. |
+| `input_near_degenerate_corrugated_strip_122.csv` | Thin corrugated geometry with near-collinear edges; tests floating-point robustness. |
+
+---
+
+## Dashboard (Interactive Web UI)
+
+The project includes a browser-based dashboard for visual exploration.
+
+### Start the server
+
+```bash
+# Install Node.js dependencies (first time only)
+cd server
+npm install
+
+# Start the server
+node server.js
+```
+
+Then open **http://localhost:3000** in your browser.
+
+### What the dashboard shows
+
+- **Dataset selector** — browse and select any test CSV from `tests/`.
+- **Target vertex input** — set the desired output vertex count.
+- **Input polygon view** — SVG rendering of the original boundary.
+- **Output polygon view** — SVG rendering after simplification.
+- **Overlay view** — both boundaries superimposed (teal = original, coral = simplified).
+- **Metrics panel** — area drift, areal displacement, runtime, vertex counts.
+- **Reduction curve** — sweep target values automatically and plot displacement vs. vertices removed.
+- **Benchmark charts** — scatter plots of runtime and memory vs. input size, loaded from benchmark results CSV.
+
+---
 
 ## Benchmarking
 
-Benchmark artifacts live in `benchmarks/`.
+```bash
+# Linux / WSL
+python3 benchmarks/run_benchmarks.py
 
-Case manifest:
-
-- [benchmarks/cases.csv](CSD2183_DataStructure_Project2/benchmarks/cases.csv)
-
-Runner:
-
-- [benchmarks/run_benchmarks.py](CSD2183_DataStructure_Project2/benchmarks/run_benchmarks.py)
-
-PowerShell wrapper:
-
-- [benchmarks/run_benchmarks.ps1](CSD2183_DataStructure_Project2/benchmarks/run_benchmarks.ps1)
-
-Sample report:
-
-- [benchmarks/REPORT.md](CSD2183_DataStructure_Project2/benchmarks/REPORT.md)
-
-Run the benchmark suite from PowerShell:
-
-```powershell
+# PowerShell
 powershell -ExecutionPolicy Bypass -File benchmarks/run_benchmarks.ps1
 ```
 
-Or directly inside Linux/WSL:
+Results are written to `benchmarks/results/benchmark_results.csv` with columns:
+`input_vertices, output_vertices, elapsed_seconds, peak_kb, areal_displacement`.
 
-```bash
-python3 benchmarks/run_benchmarks.py
-```
+See `benchmarks/REPORT.md` for analysis, scaling plots, and fitted functions.
 
-The benchmark runner records:
-
-- input vertex count
-- output vertex count
-- elapsed time in seconds
-- peak RSS memory in kilobytes
-- reported areal displacement
-
-Results are written to:
-
-```text
-benchmarks/results/benchmark_results.csv
-```
-
-## Dependencies
-
-Core build dependency:
-
-- `g++` with C++17 support
-
-Optional dependency for exact symmetric-difference displacement reporting:
-
-- Python with `shapely`
-
-If `shapely` is available, the program uses [tools/compute_symdiff_area.sh](/c:/Users/elvis/Desktop/CUSTOM_engine/CSD2183_DataStructure_Project2/tools/compute_symdiff_area.sh)
-to compute exact final areal displacement from the emitted geometry. If not available, the code
-falls back to its internal displacement estimate.
+---
 
 ## Repository Layout
 
-```text
-include/
-  csv_io.hpp
-  geometry.hpp
-  simplifier.hpp
-src/
-  csv_io.cpp
-  geometry.cpp
-  main.cpp
-  simplifier.cpp
-tests/
-  custom/
-  data/
-  run_smoke_test.ps1
-  run_fixture_tests.ps1
-  run_rubric_checks.ps1
-  validate_output.py
-benchmarks/
-  cases.csv
-  run_benchmarks.py
-  run_benchmarks.ps1
-  REPORT.md
-tools/
-  compute_symdiff_area.py
-  compute_symdiff_area.sh
 ```
+.
+├── include/
+│   ├── csv_io.hpp          # CSV I/O declarations
+│   ├── geometry.hpp        # Point, Vertex, Candidate structs
+│   └── simplifier.hpp      # Simplifier class declaration
+├── src/
+│   ├── csv_io.cpp          # CSV loading, output printing, cleanup
+│   ├── geometry.cpp        # Cross product, polygon area, struct implementations
+│   ├── main.cpp            # Entry point: parse args, load, simplify, print
+│   └── simplifier.cpp      # APSC algorithm, spatial grid, priority queue
+├── server/
+│   ├── server.js           # Node.js/Express backend for dashboard
+│   └── package.json
+├── dashboard.html          # Interactive browser dashboard (served by server.js)
+├── tests/
+│   ├── data/               # Reference test CSVs and expected outputs
+│   ├── custom/             # Custom challenge datasets and generator
+│   ├── run_smoke_test.ps1
+│   ├── run_fixture_tests.ps1
+│   ├── run_rubric_checks.ps1
+│   └── validate_output.py  # Geometry validation script
+├── benchmarks/
+│   ├── cases.csv           # Benchmark case manifest
+│   ├── run_benchmarks.py   # Benchmark runner
+│   ├── run_benchmarks.ps1
+│   ├── results/            # Benchmark output CSV
+│   └── REPORT.md           # Scaling analysis and plots
+├── tools/
+│   ├── compute_symdiff_area.py   # Exact displacement via shapely
+│   └── compute_symdiff_area.sh  # Shell wrapper
+├── Makefile
+└── README.md
+```
+
+---
+
+## Dependencies
+
+| Dependency | Required? | Purpose |
+|---|---|---|
+| `g++` (C++17) | **Yes** | Compile the simplify binary |
+| `make` | **Yes** | Build system |
+| Python 3 | Optional | Generate custom datasets, run benchmarks |
+| `shapely` (Python) | Optional | Exact symmetric-difference displacement |
+| Node.js + Express | Optional | Dashboard web server |
+
+---
 
 ## Notes
 
-- The current implementation is aligned with the clarified grading guidance that focuses on area
-  preservation, topology preservation, metric consistency, and valid greedy simplification rather
-  than exact coordinate-by-coordinate matching with a reference file.
-- For the final submission package, you still need the separate AI interaction log, AI usage report,
-  and video presentation required by the PDF brief.
+- Area is preserved within floating-point tolerance (~1e-12 for typical polygon sizes).
+- Topology is verified via the spatial grid for large rings and an explicit O(n²)
+  check for rings with ≤ 512 vertices.
+- If no valid collapse exists before the target is reached, the program outputs
+  the best simplification achievable without violating constraints.
+- All measurements (runtime, memory) are single-threaded; do not use `make -j`
+  for performance comparisons.
+
+---
+
+## References
+
+Kronenfeld, B. J., Stanislawski, L. V., Buttenfield, B. P., and Brockmeyer, T. (2020).
+"Simplification of polylines by segment collapse: minimizing areal displacement while
+preserving area." *International Journal of Cartography*, 6(1), pp. 22–46.
+https://doi.org/10.1080/23729333.2019.1631535
