@@ -1,7 +1,10 @@
 $ErrorActionPreference = "Stop"
 
-make
-./simplify tests/data/example_input.csv 12 | Out-File -Encoding ascii tests/smoke_output.tmp
+$repoWin = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$repoWsl = "/mnt/" + $repoWin.Substring(0, 1).ToLower() + $repoWin.Substring(2).Replace("\", "/")
+
+wsl bash -lc "cd $repoWsl && make" | Out-Null
+wsl bash -lc "cd $repoWsl && ./simplify tests/data/example_input.csv 12" | Out-File -Encoding ascii tests/smoke_output.tmp
 Compare-Object `
     (Get-Content tests/data/example_expected_noop.txt) `
     (Get-Content tests/smoke_output.tmp) `

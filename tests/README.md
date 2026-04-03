@@ -34,3 +34,27 @@ Each test case consists of an **input CSV** and the corresponding **expected out
 ```
 
 The program reads a CSV with columns `ring_id,vertex_id,x,y` and writes simplified output to stdout.
+
+## Rubric-Based Validation
+
+The teaching-team clarification says outputs do not need to match the reference coordinates exactly.
+If you want to validate against the stated grading criteria instead of exact-file diffs, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tests/run_rubric_checks.ps1
+```
+
+To validate a single generated output file:
+
+```powershell
+python tests/validate_output.py --input tests/input_blob_with_two_holes.csv --output your_output.txt --target 17
+```
+
+This checker verifies:
+
+- ring count preservation
+- per-ring signed area preservation within floating-point tolerance
+- ring orientation (`CCW` exterior, `CW` holes)
+- self-intersection / ring-intersection failures
+- consistency of reported signed area and areal displacement
+- whether the reported vertex count exceeds the target

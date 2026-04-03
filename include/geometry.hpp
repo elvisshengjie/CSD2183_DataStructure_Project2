@@ -14,10 +14,12 @@ struct Vertex {
     int id;
     int ring_id;
     Point p;
+    Point original_p;
     Vertex* prev;
     Vertex* next;
     bool active;
     int version; // Tracks changes for the lazy priority queue
+    std::vector<Point> original_chain_to_next;
 
     Vertex(int i, int r, Point pt);
 };

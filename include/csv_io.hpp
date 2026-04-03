@@ -10,7 +10,7 @@ namespace CSV_IO {
     void loadCSV(const std::string& filename, std::vector<std::vector<Vertex*>>& rings, double& initial_signed_area, int& current_vertices);
     
     // Prints the simplified rings to standard output
-    void printOutput(const std::vector<std::vector<Vertex*>>& rings, double initial_signed_area, double total_areal_displacement);
+    void printOutput(const std::vector<std::vector<Vertex*>>& rings, const std::string& input_file, double initial_signed_area, double total_areal_displacement);
     
     // Cleans up dynamically allocated memory
     void cleanup(std::vector<std::vector<Vertex*>>& rings);

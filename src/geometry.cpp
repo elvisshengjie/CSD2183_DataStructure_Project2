@@ -5,7 +5,8 @@ bool Point::operator==(const Point& other) const {
     return std::abs(x - other.x) < 1e-9 && std::abs(y - other.y) < 1e-9;
 }
 
-Vertex::Vertex(int i, int r, Point pt) : id(i), ring_id(r), p(pt), prev(nullptr), next(nullptr), active(true), version(0) {}
+Vertex::Vertex(int i, int r, Point pt)
+    : id(i), ring_id(r), p(pt), original_p(pt), prev(nullptr), next(nullptr), active(true), version(0) {}
 
 bool Candidate::operator>(const Candidate& other) const {
     return areal_displacement > other.areal_displacement;

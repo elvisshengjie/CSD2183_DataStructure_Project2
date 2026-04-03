@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
     simplifier.simplify(target_vertices);
 
     // Print output and metrics
-    CSV_IO::printOutput(rings, initial_area, simplifier.getTotalDisplacement());
+    CSV_IO::printOutput(rings, input_file, initial_area, simplifier.getTotalDisplacement());
 
     // Clean up memory
     CSV_IO::cleanup(rings);

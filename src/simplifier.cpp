@@ -5,6 +5,61 @@
 
 using namespace std;
 
+namespace {
+
+constexpr double kEpsilon = 1e-9;
+constexpr int kStrictRingCheckThreshold = 512;
+
+bool pointsEqual(const Point& lhs, const Point& rhs) {
+    return abs(lhs.x - rhs.x) < kEpsilon && abs(lhs.y - rhs.y) < kEpsilon;
+}
+
+bool segmentsIntersectStrict(const Point& a, const Point& b, const Point& c, const Point& d) {
+    auto orient = [](const Point& p, const Point& q, const Point& r) {
+        return crossProduct(p, q, r);
+    };
+
+    auto onSegment = [](const Point& p, const Point& q, const Point& r) {
+        return q.x <= max(p.x, r.x) + kEpsilon && q.x >= min(p.x, r.x) - kEpsilon &&
+               q.y <= max(p.y, r.y) + kEpsilon && q.y >= min(p.y, r.y) - kEpsilon;
+    };
+
+    double o1 = orient(a, b, c);
+    double o2 = orient(a, b, d);
+    double o3 = orient(c, d, a);
+    double o4 = orient(c, d, b);
+
+    if (((o1 > kEpsilon && o2 < -kEpsilon) || (o1 < -kEpsilon && o2 > kEpsilon)) &&
+        ((o3 > kEpsilon && o4 < -kEpsilon) || (o3 < -kEpsilon && o4 > kEpsilon))) {
+        return true;
+    }
+
+    if (abs(o1) < kEpsilon && onSegment(a, c, b)) return true;
+    if (abs(o2) < kEpsilon && onSegment(a, d, b)) return true;
+    if (abs(o3) < kEpsilon && onSegment(c, a, d)) return true;
+    if (abs(o4) < kEpsilon && onSegment(c, b, d)) return true;
+    return false;
+}
+
+bool edgesAreAdjacent(size_t i, size_t j, size_t n) {
+    if (i == j) return true;
+    if ((i + 1) % n == j) return true;
+    if ((j + 1) % n == i) return true;
+    return false;
+}
+
+vector<Point> concatenateOriginalChains(const vector<Point>& lhs, const vector<Point>& rhs) {
+    if (lhs.empty()) return rhs;
+    if (rhs.empty()) return lhs;
+
+    vector<Point> out = lhs;
+    size_t rhsStart = pointsEqual(lhs.back(), rhs.front()) ? 1 : 0;
+    out.insert(out.end(), rhs.begin() + static_cast<ptrdiff_t>(rhsStart), rhs.end());
+    return out;
+}
+
+} // namespace
+
 // --- INTERNAL DYNAMIC SPATIAL GRID ---
 class SpatialGrid {
 private:
@@ -106,11 +161,83 @@ public:
 
 Simplifier::Simplifier(vector<vector<Vertex*>>& input_rings, int initial_vertices) 
     : rings(input_rings), current_vertices(initial_vertices), total_areal_displacement(0.0) {
+    ring_vertex_counts.reserve(rings.size());
+    for (const auto& ring : rings) {
+        ring_vertex_counts.push_back(static_cast<int>(ring.size()));
+    }
     buildQueue();
 }
 
 double Simplifier::getTotalDisplacement() const {
     return total_areal_displacement;
+}
+
+void Simplifier::pushCandidate(Vertex* vB) {
+    if (vB == nullptr || !vB->active) return;
+    int ringId = vB->ring_id;
+    if (ringId < 0 || ringId >= static_cast<int>(ring_vertex_counts.size())) return;
+    if (ring_vertex_counts[ringId] <= 3) return;
+
+    Vertex* vA = vB->prev;
+    Vertex* vC = vB->next;
+    Vertex* vD = vC->next;
+
+    if (vA == nullptr || vC == nullptr || vD == nullptr) return;
+    if (!vA->active || !vC->active || !vD->active) return;
+    if (vA == vB || vB == vC || vC == vD || vD == vA) return;
+
+    Point e = calculateE(vA, vB, vC, vD);
+    double disp = calculateDisplacement(vA, vB, vC, vD, e);
+    pq.push({vB, vC, e, disp, vB->version, vC->version});
+}
+
+bool Simplifier::ringWouldStayValidAfterCollapse(Vertex* vB, const Point& replacement) const {
+    int ringId = vB->ring_id;
+    if (ringId < 0 || ringId >= static_cast<int>(rings.size())) return true;
+    if (ring_vertex_counts[ringId] > kStrictRingCheckThreshold) return true;
+
+    Vertex* vA = vB->prev;
+    Vertex* vC = vB->next;
+
+    vector<Point> ringPoints;
+    Vertex* start = vA;
+    Vertex* curr = start;
+    do {
+        if (!curr->active) {
+            curr = curr->next;
+            continue;
+        }
+
+        if (curr == vB) {
+            ringPoints.push_back(replacement);
+        } else if (curr != vC) {
+            ringPoints.push_back(curr->p);
+        }
+        curr = curr->next;
+    } while (curr != start);
+
+    if (ringPoints.size() < 3) return false;
+
+    for (size_t i = 0; i < ringPoints.size(); ++i) {
+        if (pointsEqual(ringPoints[i], ringPoints[(i + 1) % ringPoints.size()])) {
+            return false;
+        }
+    }
+
+    for (size_t i = 0; i < ringPoints.size(); ++i) {
+        Point a1 = ringPoints[i];
+        Point a2 = ringPoints[(i + 1) % ringPoints.size()];
+        for (size_t j = i + 1; j < ringPoints.size(); ++j) {
+            if (edgesAreAdjacent(i, j, ringPoints.size())) continue;
+            Point b1 = ringPoints[j];
+            Point b2 = ringPoints[(j + 1) % ringPoints.size()];
+            if (segmentsIntersectStrict(a1, a2, b1, b2)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 Point Simplifier::calculateE(Vertex* vA, Vertex* vB, Vertex* vC, Vertex* vD) {
@@ -237,13 +364,7 @@ void Simplifier::buildQueue() {
     for (auto& ring : rings) {
         if (ring.size() <= 3) continue;
         for (Vertex* B : ring) {
-            Vertex* A = B->prev;
-            Vertex* C = B->next;
-            Vertex* D = C->next;
-
-            Point E = calculateE(A, B, C, D);
-            double disp = calculateDisplacement(A, B, C, D, E);
-            pq.push({B, C, E, disp, B->version, C->version});
+            pushCandidate(B);
         }
     }
 }
@@ -278,6 +399,8 @@ void Simplifier::simplify(int target_vertices) {
         Vertex* A = B->prev;
         Vertex* D = C->next;
 
+        if (ring_vertex_counts[B->ring_id] <= 3) continue;
+
         Point trueE = calculateE(A, B, C, D);
         double trueDisp = calculateDisplacement(A, B, C, D, trueE);
 
@@ -287,6 +410,7 @@ void Simplifier::simplify(int target_vertices) {
         }
 
         if (grid.checkIntersection(A->p, trueE, A, B, C) || grid.checkIntersection(trueE, D->p, B, C, D)) continue;
+        if (!ringWouldStayValidAfterCollapse(B, trueE)) continue;
 
         B->p = trueE;
         B->version++;
@@ -296,9 +420,12 @@ void Simplifier::simplify(int target_vertices) {
         total_areal_displacement += trueDisp;
 
         C->active = false;
+        A->original_chain_to_next = concatenateOriginalChains(A->original_chain_to_next, B->original_chain_to_next);
+        B->original_chain_to_next = C->original_chain_to_next;
         B->next = D;
         D->prev = B;
 
+        ring_vertex_counts[B->ring_id]--;
         current_vertices--;
 
         grid.insert(A->prev, A);
@@ -306,13 +433,8 @@ void Simplifier::simplify(int target_vertices) {
         grid.insert(B, D);
         grid.insert(D, D->next);
 
-        if (A->prev != B && A->prev != D) {
-            Point newE = calculateE(A->prev, A, B, D);
-            pq.push({A, B, newE, calculateDisplacement(A->prev, A, B, D, newE), A->version, B->version});
-        }
-        if (D->next != B && D->next != A) {
-            Point newE = calculateE(B, D, D->next, D->next->next);
-            pq.push({D, D->next, newE, calculateDisplacement(B, D, D->next, D->next->next, newE), D->version, D->next->version});
-        }
+        pushCandidate(A);
+        pushCandidate(B);
+        pushCandidate(D);
     }
 }
