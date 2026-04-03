@@ -1,4 +1,9 @@
 label,input_path,target_vertices,input_vertices,output_vertices,elapsed_seconds,peak_rss_kb,reported_areal_displacement,notes
+TC1 – Smooth Circle (4000v),tests/custom/input_tc1_circle_4000v.csv,2000,4000,2000,0.102300,8076,1.054356522394839e-06,Uniform circle; baseline scaling reference. Expects near-zero displacement.
+TC2 – Fractal Coastline (3072v),tests/custom/input_tc2_fractal_3072v.csv,1536,3072,1536,0.094700,7680,0.04089658657295941,Koch snowflake depth 5. Near-collinear runs stress E-point solver.
+TC3 – 50 Holes Multi-Ring (664v),tests/custom/input_tc3_holes_50.csv,332,664,332,0.092100,8288,118.2901541082445,Outer ring + 50 interior holes. Tests multi-ring budget routing.
+TC4 – Near-Degenerate Spikes (2003v),tests/custom/input_tc4_spikes_2003v.csv,1001,2003,1001,0.107900,11844,0.0002325000001035862,Zigzag h=1e-4 spikes. Tests epsilon handling and near-degenerate triangles.
+TC5 – Outward Spiral (5000v),tests/custom/input_tc5_spiral_5000v.csv,2500,5001,2500,0.159400,8832,0.01792727987369376,Self-proximate edges throughout. Hammers spatial grid intersection queries.
 custom_narrow_corridor,tests/custom/input_narrow_corridor_with_two_holes.csv,9,12,12,0.610000,30696,0,Narrow-gap multi-ring topology stress
 custom_spiky_star,tests/custom/input_spiky_star_80.csv,40,80,40,0.490000,30688,4787.65343144469,Oscillatory single-ring boundary
 custom_nine_holes,tests/custom/input_grid_with_nine_holes.csv,36,76,36,0.550000,30692,2466.79108919341,Many-hole bookkeeping stress

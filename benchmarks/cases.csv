@@ -1,4 +1,9 @@
 label,input_path,target_vertices,notes
+TC1 – Smooth Circle (4000v),tests/custom/input_tc1_circle_4000v.csv,2000,Uniform circle; baseline scaling reference. Expects near-zero displacement.
+TC2 – Fractal Coastline (3072v),tests/custom/input_tc2_fractal_3072v.csv,1536,Koch snowflake depth 5. Near-collinear runs stress E-point solver.
+TC3 – 50 Holes Multi-Ring (664v),tests/custom/input_tc3_holes_50.csv,332,Outer ring + 50 interior holes. Tests multi-ring budget routing.
+TC4 – Near-Degenerate Spikes (2003v),tests/custom/input_tc4_spikes_2003v.csv,1001,Zigzag h=1e-4 spikes. Tests epsilon handling and near-degenerate triangles.
+TC5 – Outward Spiral (5000v),tests/custom/input_tc5_spiral_5000v.csv,2500,Self-proximate edges throughout. Hammers spatial grid intersection queries.
 custom_narrow_corridor,tests/custom/input_narrow_corridor_with_two_holes.csv,9,Narrow-gap multi-ring topology stress
 custom_spiky_star,tests/custom/input_spiky_star_80.csv,40,Oscillatory single-ring boundary
 custom_nine_holes,tests/custom/input_grid_with_nine_holes.csv,36,Many-hole bookkeeping stress

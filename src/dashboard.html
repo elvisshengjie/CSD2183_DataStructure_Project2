@@ -34,44 +34,28 @@
                 linear-gradient(180deg, #fbf6ed 0%, #f3ead8 38%, #efe2ca 100%);
         }
 
-        body::before,
-        body::after {
+        body::before, body::after {
             content: "";
             position: fixed;
-            width: 34vw;
-            height: 34vw;
+            width: 34vw; height: 34vw;
             border-radius: 999px;
             pointer-events: none;
             z-index: 0;
             filter: blur(24px);
             opacity: 0.35;
         }
-
-        body::before {
-            top: -10vw;
-            right: -8vw;
-            background: rgba(15, 118, 110, 0.22);
-        }
-
-        body::after {
-            bottom: -12vw;
-            left: -8vw;
-            background: rgba(199, 91, 57, 0.18);
-        }
+        body::before { top: -10vw; right: -8vw; background: rgba(15, 118, 110, 0.22); }
+        body::after  { bottom: -12vw; left: -8vw; background: rgba(199, 91, 57, 0.18); }
 
         .shell {
-            position: relative;
-            z-index: 1;
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 28px;
+            position: relative; z-index: 1;
+            max-width: 1600px; margin: 0 auto; padding: 28px;
         }
 
         .hero {
             display: grid;
             grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
-            gap: 22px;
-            align-items: stretch;
+            gap: 22px; align-items: stretch;
         }
 
         .panel {
@@ -82,12 +66,7 @@
             box-shadow: var(--shadow);
         }
 
-        .rail {
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
+        .rail { padding: 24px; display: flex; flex-direction: column; gap: 18px; }
 
         .brand {
             padding: 28px;
@@ -97,1373 +76,1087 @@
         }
 
         .eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 7px 12px;
-            border-radius: 999px;
-            font-size: 12px;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            background: rgba(17, 33, 45, 0.06);
-            color: var(--ink-soft);
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 7px 12px; border-radius: 999px;
+            font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+            background: rgba(17, 33, 45, 0.06); color: var(--ink-soft);
         }
-
         .eyebrow::before {
-            content: "";
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
+            content: ""; width: 9px; height: 9px; border-radius: 50%;
             background: linear-gradient(135deg, var(--teal), var(--gold));
         }
 
         h1, h2, h3, h4 { margin: 0; }
 
         .headline {
-            margin-top: 18px;
-            max-width: 780px;
+            margin-top: 18px; max-width: 780px;
             font-family: var(--serif);
             font-size: clamp(2.4rem, 4vw, 4.4rem);
-            line-height: 0.96;
-            letter-spacing: -0.04em;
+            line-height: 0.96; letter-spacing: -0.04em;
         }
 
         .subhead {
-            margin-top: 18px;
-            max-width: 760px;
-            font-size: 16px;
-            line-height: 1.7;
-            color: var(--ink-soft);
+            margin-top: 18px; max-width: 760px;
+            font-size: 16px; line-height: 1.7; color: var(--ink-soft);
         }
 
         .hero-note {
-            align-self: end;
-            display: grid;
-            gap: 12px;
-            padding: 20px;
+            align-self: end; display: grid; gap: 12px; padding: 20px;
             border-radius: 22px;
             background: linear-gradient(160deg, rgba(15, 118, 110, 0.1), rgba(199, 91, 57, 0.08));
             border: 1px solid rgba(17, 33, 45, 0.08);
         }
 
-        .hero-note p,
-        .story-card p,
-        .dataset-note p,
-        .caption,
-        .status-line {
-            margin: 0;
-            line-height: 1.65;
-            color: var(--ink-soft);
+        .hero-note p, .story-card p, .dataset-note p, .caption, .status-line {
+            margin: 0; line-height: 1.65; color: var(--ink-soft);
         }
 
         .section { margin-top: 22px; }
         .section-grid { display: grid; gap: 22px; }
 
-        .controls h3,
-        .dataset-pane h3,
-        .story-card h3,
-        .chart-panel h3,
-        .raw-panel h3,
-        .visual-panel h3 {
-            font-size: 14px;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: var(--ink-soft);
+        .controls h3, .dataset-pane h3, .story-card h3,
+        .chart-panel h3, .raw-panel h3, .visual-panel h3 {
+            font-size: 14px; letter-spacing: 0.12em;
+            text-transform: uppercase; color: var(--ink-soft);
         }
 
         .dataset-pane { display: grid; gap: 14px; }
 
         .dataset-list {
-            display: grid;
-            gap: 10px;
-            max-height: 420px;
-            overflow: auto;
-            padding-right: 4px;
+            display: grid; gap: 10px;
+            max-height: 420px; overflow: auto; padding-right: 4px;
         }
 
         .dataset-item {
-            border: 1px solid var(--line);
-            border-radius: 18px;
+            border: 1px solid var(--line); border-radius: 18px;
             padding: 14px 14px 13px;
             background: rgba(255, 255, 255, 0.52);
             cursor: pointer;
             transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
-            font-family: var(--sans);
-            text-align: left;
+            font-family: var(--sans); text-align: left;
         }
+        .dataset-item:hover { transform: translateY(-1px); border-color: rgba(15, 118, 110, 0.4); background: rgba(255, 255, 255, 0.88); }
+        .dataset-item.active { border-color: var(--teal); background: linear-gradient(160deg, rgba(15, 118, 110, 0.14), rgba(255, 255, 255, 0.86)); }
 
-        .dataset-item:hover {
-            transform: translateY(-1px);
-            border-color: rgba(15, 118, 110, 0.4);
-            background: rgba(255, 255, 255, 0.88);
-        }
+        .dataset-label { font-size: 15px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; word-break: break-word; }
+        .dataset-meta  { margin-top: 6px; font-size: 12px; line-height: 1.5; color: var(--ink-soft); }
 
-        .dataset-item.active {
-            border-color: var(--teal);
-            background: linear-gradient(160deg, rgba(15, 118, 110, 0.14), rgba(255, 255, 255, 0.86));
-        }
-
-        .dataset-label {
-            font-size: 15px;
-            font-weight: 700;
-            line-height: 1.3;
-            overflow-wrap: anywhere;
-            word-break: break-word;
-        }
-
-        .dataset-meta {
-            margin-top: 6px;
-            font-size: 12px;
-            line-height: 1.5;
-            color: var(--ink-soft);
-        }
-
-        .controls {
-            display: grid;
-            gap: 12px;
-            margin-top: 4px;
-        }
-
+        .controls { display: grid; gap: 12px; margin-top: 4px; }
         .field { display: grid; gap: 7px; }
-
-        .field label {
-            font-size: 12px;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: var(--ink-soft);
-        }
+        .field label { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
 
         input[type="number"] {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1px solid var(--line);
-            border-radius: 14px;
-            background: rgba(255, 255, 255, 0.9);
-            color: var(--ink);
-            font-size: 16px;
-            font-family: var(--mono);
+            width: 100%; padding: 12px 14px;
+            border: 1px solid var(--line); border-radius: 14px;
+            background: rgba(255, 255, 255, 0.9); color: var(--ink);
+            font-size: 16px; font-family: var(--mono);
         }
 
-        .button-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
+        .button-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
         button {
-            border: 0;
-            border-radius: 16px;
-            padding: 13px 16px;
-            cursor: pointer;
-            font-family: var(--sans);
-            font-size: 14px;
-            font-weight: 700;
+            border: 0; border-radius: 16px; padding: 13px 16px;
+            cursor: pointer; font-family: var(--sans);
+            font-size: 14px; font-weight: 700;
             transition: transform 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
         }
+        button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(17, 33, 45, 0.12); }
+        button:disabled { cursor: wait; opacity: 0.75; }
 
-        button:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 12px 24px rgba(17, 33, 45, 0.12);
-        }
-
-        button:disabled {
-            cursor: wait;
-            opacity: 0.75;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--teal), #15827a);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, var(--coral), #d8794f);
-            color: white;
-        }
-
-        .btn-ghost {
-            background: rgba(17, 33, 45, 0.06);
-            color: var(--ink);
-        }
+        .btn-primary   { background: linear-gradient(135deg, var(--teal), #15827a); color: white; }
+        .btn-secondary { background: linear-gradient(135deg, var(--coral), #d8794f); color: white; }
+        .btn-ghost     { background: rgba(17, 33, 45, 0.06); color: var(--ink); }
+        .btn-gold      { background: linear-gradient(135deg, var(--gold), #c9973a); color: white; }
 
         .status-pill {
-            min-height: 58px;
-            padding: 12px 14px;
-            border-radius: 18px;
-            border: 1px solid var(--line);
-            background: rgba(255, 255, 255, 0.72);
-            display: grid;
-            align-items: center;
+            min-height: 58px; padding: 12px 14px; border-radius: 18px;
+            border: 1px solid var(--line); background: rgba(255, 255, 255, 0.72);
+            display: grid; align-items: center;
         }
-
-        .status-pill[data-tone="success"] {
-            border-color: rgba(15, 118, 110, 0.35);
-            background: rgba(15, 118, 110, 0.08);
-        }
-
-        .status-pill[data-tone="warn"] {
-            border-color: rgba(181, 135, 47, 0.45);
-            background: rgba(181, 135, 47, 0.12);
-        }
-
-        .status-pill[data-tone="error"] {
-            border-color: rgba(199, 91, 57, 0.38);
-            background: rgba(199, 91, 57, 0.11);
-        }
+        .status-pill[data-tone="success"] { border-color: rgba(15, 118, 110, 0.35); background: rgba(15, 118, 110, 0.08); }
+        .status-pill[data-tone="warn"]    { border-color: rgba(181, 135, 47, 0.45); background: rgba(181, 135, 47, 0.12); }
+        .status-pill[data-tone="error"]   { border-color: rgba(199, 91, 57, 0.38); background: rgba(199, 91, 57, 0.11); }
 
         .story-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 16px;
-            margin-top: 18px;
+            display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px; margin-top: 18px;
         }
 
-        .story-card {
-            padding: 18px;
-            border-radius: 22px;
-            background: rgba(255, 255, 255, 0.55);
-            border: 1px solid var(--line);
-        }
-
-        .story-card strong,
-        .dataset-note strong {
-            display: block;
-            margin-bottom: 10px;
-            font-size: 18px;
-            color: var(--ink);
-        }
+        .story-card { padding: 18px; border-radius: 22px; background: rgba(255, 255, 255, 0.55); border: 1px solid var(--line); }
+        .story-card strong, .dataset-note strong { display: block; margin-bottom: 10px; font-size: 18px; color: var(--ink); }
 
         .metrics {
-            display: grid;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-            gap: 14px;
-            margin-top: 22px;
+            display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 14px; margin-top: 22px;
         }
 
-        .metric {
-            padding: 16px;
-            border-radius: 20px;
-            background: rgba(255, 255, 255, 0.62);
-            border: 1px solid var(--line);
-            min-width: 0;
-        }
-
-        .metric-label {
-            font-size: 11px;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: var(--ink-soft);
-        }
-
-        .metric-value {
-            margin-top: 10px;
-            font-size: clamp(1.05rem, 1.7vw, 1.9rem);
-            line-height: 1.08;
-            font-weight: 800;
-            color: var(--ink);
-            overflow-wrap: break-word;
-            word-break: normal;
-            hyphens: manual;
-        }
-
-        .metric-sub {
-            margin-top: 8px;
-            font-size: 12px;
-            color: var(--ink-soft);
-            overflow-wrap: break-word;
-            word-break: normal;
-            hyphens: manual;
-        }
+        .metric { padding: 16px; border-radius: 20px; background: rgba(255, 255, 255, 0.62); border: 1px solid var(--line); min-width: 0; }
+        .metric-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); }
+        .metric-value { margin-top: 10px; font-size: clamp(1.05rem, 1.7vw, 1.9rem); line-height: 1.08; font-weight: 800; color: var(--ink); overflow-wrap: break-word; }
+        .metric-sub   { margin-top: 8px; font-size: 12px; color: var(--ink-soft); overflow-wrap: break-word; }
 
         .dataset-note {
-            margin-top: 18px;
-            padding: 20px;
-            border-radius: 22px;
+            margin-top: 18px; padding: 20px; border-radius: 22px;
             background: linear-gradient(165deg, rgba(181, 135, 47, 0.12), rgba(255, 255, 255, 0.7));
             border: 1px solid rgba(17, 33, 45, 0.09);
-            overflow-wrap: anywhere;
-            word-break: break-word;
+            overflow-wrap: anywhere; word-break: break-word;
         }
 
-        .visual-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 18px;
-        }
+        .visual-grid  { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+        .visual-panel, .chart-panel, .raw-panel { padding: 18px; }
 
-        .visual-panel,
-        .chart-panel,
-        .raw-panel {
-            padding: 18px;
-        }
-
-        .panel-top {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            align-items: baseline;
-            margin-bottom: 14px;
-        }
+        .panel-top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 14px; }
 
         .svg-stage {
-            aspect-ratio: 1 / 1;
-            width: 100%;
-            border-radius: 22px;
+            aspect-ratio: 1 / 1; width: 100%; border-radius: 22px;
             background:
-                linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 228, 0.9)),
-                repeating-linear-gradient(
-                    0deg,
-                    transparent,
-                    transparent 36px,
-                    rgba(17, 33, 45, 0.035) 36px,
-                    rgba(17, 33, 45, 0.035) 37px
-                ),
-                repeating-linear-gradient(
-                    90deg,
-                    transparent,
-                    transparent 36px,
-                    rgba(17, 33, 45, 0.035) 36px,
-                    rgba(17, 33, 45, 0.035) 37px
-                );
-            border: 1px solid rgba(17, 33, 45, 0.1);
-            overflow: hidden;
+                linear-gradient(180deg, rgba(255,255,255,0.92), rgba(244,238,228,0.9)),
+                repeating-linear-gradient(0deg, transparent, transparent 36px, rgba(17,33,45,0.035) 36px, rgba(17,33,45,0.035) 37px),
+                repeating-linear-gradient(90deg, transparent, transparent 36px, rgba(17,33,45,0.035) 36px, rgba(17,33,45,0.035) 37px);
+            border: 1px solid rgba(17, 33, 45, 0.1); overflow: hidden;
         }
 
-        .chart-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 18px;
-        }
+        .chart-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 
         .chart-svg {
-            width: 100%;
-            height: 320px;
-            border-radius: 22px;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 238, 228, 0.86));
-            border: 1px solid rgba(17, 33, 45, 0.1);
-            overflow: hidden;
+            width: 100%; height: 320px; border-radius: 22px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(244,238,228,0.86));
+            border: 1px solid rgba(17, 33, 45, 0.1); overflow: hidden;
         }
 
-        .benchmark-table-wrap {
-            margin-top: 18px;
-            overflow: auto;
-            border-radius: 22px;
-            border: 1px solid var(--line);
-        }
+        .benchmark-table-wrap { margin-top: 18px; overflow: auto; border-radius: 22px; border: 1px solid var(--line); }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 920px;
-            background: rgba(255, 255, 255, 0.6);
-        }
+        table { width: 100%; border-collapse: collapse; min-width: 920px; background: rgba(255, 255, 255, 0.6); }
+        th, td { padding: 13px 14px; text-align: left; border-bottom: 1px solid rgba(17,33,45,0.08); font-size: 13px; }
+        th { position: sticky; top: 0; background: #efe6d7; text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; color: var(--ink-soft); }
 
-        th,
-        td {
-            padding: 13px 14px;
-            text-align: left;
-            border-bottom: 1px solid rgba(17, 33, 45, 0.08);
-            font-size: 13px;
+        /* ── Custom test cases table ── */
+        .custom-tc-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
+        .tc-card { padding: 16px; border-radius: 20px; background: rgba(255,255,255,0.62); border: 1px solid var(--line); }
+        .tc-card-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 6px; }
+        .tc-card-name  { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+        .tc-card-body  { font-size: 12px; color: var(--ink-soft); line-height: 1.55; }
+        .tc-badge {
+            display: inline-block; padding: 2px 9px; border-radius: 999px;
+            font-size: 11px; font-weight: 700; margin-bottom: 8px;
         }
+        .tc-badge.circle    { background: #e0f2f1; color: #0f766e; }
+        .tc-badge.fractal   { background: #ede9fe; color: #5b21b6; }
+        .tc-badge.multihole { background: #dcfce7; color: #166534; }
+        .tc-badge.spikes    { background: #fff7ed; color: #9a3412; }
+        .tc-badge.spiral    { background: #fce7f3; color: #9d174d; }
 
-        th {
-            position: sticky;
-            top: 0;
-            background: #efe6d7;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            font-size: 11px;
-            color: var(--ink-soft);
-        }
+        .tc-run-status { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-top: 8px; }
+        .tc-run-status.idle    { background: rgba(17,33,45,0.07); color: var(--ink-soft); }
+        .tc-run-status.running { background: #fef3c7; color: #92400e; }
+        .tc-run-status.ok      { background: #d1fae5; color: #065f46; }
+        .tc-run-status.error   { background: #fee2e2; color: #991b1b; }
 
-        .raw-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 18px;
-        }
+        .tc-result-row { font-size: 12px; margin-top: 8px; color: var(--ink-soft); }
+        .tc-result-row span { color: var(--ink); font-weight: 700; font-family: var(--mono); }
+
+        .raw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 
         pre {
-            margin: 0;
-            padding: 16px;
-            min-height: 360px;
-            max-height: 520px;
-            overflow: auto;
-            border-radius: 20px;
-            background: #14232e;
-            color: #edf5f4;
-            font-family: var(--mono);
-            font-size: 12px;
-            line-height: 1.55;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin: 0; padding: 16px; min-height: 360px; max-height: 520px;
+            overflow: auto; border-radius: 20px;
+            background: #14232e; color: #edf5f4;
+            font-family: var(--mono); font-size: 12px; line-height: 1.55;
+            border: 1px solid rgba(255,255,255,0.08);
         }
 
         .tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 10px;
-            border-radius: 999px;
-            background: rgba(17, 33, 45, 0.06);
-            color: var(--ink-soft);
-            font-size: 11px;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 10px; border-radius: 999px;
+            background: rgba(17,33,45,0.06); color: var(--ink-soft);
+            font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
         }
 
         .footer-note {
-            margin-top: 18px;
-            padding: 16px 18px;
-            border-radius: 18px;
-            background: rgba(17, 33, 45, 0.05);
-            color: var(--ink-soft);
-            font-size: 13px;
-            line-height: 1.65;
+            margin-top: 18px; padding: 16px 18px; border-radius: 18px;
+            background: rgba(17,33,45,0.05); color: var(--ink-soft);
+            font-size: 13px; line-height: 1.65;
         }
 
-        @media (max-width: 1500px) {
-            .metrics {
-                grid-template-columns: repeat(4, minmax(0, 1fr));
-            }
+        /* section divider */
+        .section-divider {
+            margin: 28px 0 0;
+            padding: 20px 24px 18px;
+            border-radius: 22px;
+            background: linear-gradient(160deg, rgba(181,135,47,0.1), rgba(15,118,110,0.08));
+            border: 1px solid rgba(17,33,45,0.09);
+            display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
         }
+        .section-divider-text { flex: 1; min-width: 240px; }
+        .section-divider h2 { font-family: var(--serif); font-size: 26px; letter-spacing: -0.02em; margin-bottom: 6px; }
+        .section-divider p  { font-size: 14px; color: var(--ink-soft); margin: 0; line-height: 1.6; }
 
-        @media (max-width: 1300px) {
-            .hero,
-            .brand,
-            .visual-grid,
-            .chart-grid,
-            .raw-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .metrics {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-
-            .story-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 780px) {
-            .shell { padding: 14px; }
-            .rail, .brand, .visual-panel, .chart-panel, .raw-panel { padding: 16px; }
-            .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .button-row { grid-template-columns: 1fr; }
-        }
+        @media (max-width: 1500px) { .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); } .custom-tc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        @media (max-width: 1300px) { .hero, .brand, .visual-grid, .chart-grid, .raw-grid { grid-template-columns: 1fr; } .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } .story-grid { grid-template-columns: 1fr; } .custom-tc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 780px)  { .shell { padding: 14px; } .rail, .brand, .visual-panel, .chart-panel, .raw-panel { padding: 16px; } .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .button-row { grid-template-columns: 1fr; } .custom-tc-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
-    <div class="shell">
-        <section class="hero">
-            <aside class="panel rail">
-                <div class="dataset-pane">
-                    <div>
-                        <h3>Dataset Library</h3>
-                        <p class="caption">Official fixtures and custom stress cases, all driven by the exact C++ simplifier output.</p>
-                    </div>
-                    <div id="datasetList" class="dataset-list"></div>
-                </div>
+<div class="shell">
 
-                <div class="controls">
-                    <h3>Run Controls</h3>
-                    <div class="field">
-                        <label for="targetVertices">Target vertices</label>
-                        <input id="targetVertices" type="number" min="3" value="40">
-                    </div>
-                    <div class="button-row">
-                        <button id="runButton" class="btn-primary">Run exact simplify output</button>
-                        <button id="sweepButton" class="btn-secondary">Build reduction curve</button>
-                    </div>
-                    <button id="refreshBenchmarks" class="btn-ghost">Reload benchmark graphs</button>
-                    <div id="statusPill" class="status-pill" data-tone="info">
-                        <p class="status-line">Loading datasets from the local C++ server.</p>
-                    </div>
-                </div>
-            </aside>
-
-            <section class="panel brand">
+    <!-- ── HERO ── -->
+    <section class="hero">
+        <aside class="panel rail">
+            <div class="dataset-pane">
                 <div>
-                    <span class="eyebrow">Area and Topology Preserving Segment Collapse</span>
-                    <h1 class="headline">Polygon reduction as a live, inspectable story.</h1>
-                    <p class="subhead">
-                        This page is a showcase layer around your existing implementation. It never rewrites the
-                        simplified geometry. Every output view, metric card, and reduction study comes from the exact
-                        CSV and stdout emitted by <code>simplify</code>, plus the benchmark results already generated in this project.
-                    </p>
-
-                    <div class="metrics" id="metricGrid"></div>
-
-                    <div class="dataset-note">
-                        <strong id="datasetTitle">No dataset selected</strong>
-                        <p id="datasetDescription">Choose a case on the left to preview the input polygon and run the current C++ algorithm on localhost.</p>
-                    </div>
+                    <h3>Dataset Library</h3>
+                    <p class="caption">Official fixtures and custom stress cases, all driven by the exact C++ simplifier output.</p>
                 </div>
+                <div id="datasetList" class="dataset-list"></div>
+            </div>
 
-                <div class="hero-note">
-                    <span class="tag">Exact output contract</span>
-                    <p>Input geometry is loaded from the original CSV file under <code>tests/</code>. Output geometry is rendered from the exact lines printed by <code>simplify</code>.</p>
-                    <p>Benchmark charts are drawn from <code>benchmarks/results/benchmark_results.csv</code>. The live reduction curve re-runs the selected case with multiple target counts using the same executable.</p>
-                    <p id="previewMessage">Preview panels are ready. Dense rings may be sampled only for browser rendering, while the reported metrics remain exact.</p>
+            <div class="controls">
+                <h3>Run Controls</h3>
+                <div class="field">
+                    <label for="targetVertices">Target vertices</label>
+                    <input id="targetVertices" type="number" min="3" value="40">
                 </div>
-            </section>
-        </section>
-
-        <section class="section section-grid">
-            <div class="story-grid">
-                <article class="panel story-card">
-                    <h3>What This Proves</h3>
-                    <strong>Shape change without hidden shortcuts.</strong>
-                    <p>The site lets you compare the original polygon, the emitted simplified polygon, and their overlap. That makes the preservation story visible instead of purely numeric.</p>
-                </article>
-                <article class="panel story-card">
-                    <h3>What The Charts Show</h3>
-                    <strong>Scaling and displacement from project evidence.</strong>
-                    <p>Runtime and peak-memory plots come from the benchmark CSV already recorded in this repository, with fitted power-law curves to summarize approximate scaling.</p>
-                </article>
-                <article class="panel story-card">
-                    <h3>Why This Is Safe</h3>
-                    <strong>The algorithm remains untouched.</strong>
-                    <p>This page only reads files and calls the existing server endpoint that runs <code>simplify</code>. The geometry and metrics remain exactly the ones your C++ code produces.</p>
-                </article>
+                <div class="button-row">
+                    <button id="runButton" class="btn-primary">Run exact simplify output</button>
+                    <button id="sweepButton" class="btn-secondary">Build reduction curve</button>
+                </div>
+                <button id="refreshBenchmarks" class="btn-ghost">Reload benchmark graphs</button>
+                <div id="statusPill" class="status-pill" data-tone="info">
+                    <p class="status-line">Loading datasets from the local C++ server.</p>
+                </div>
             </div>
-        </section>
+        </aside>
 
-        <section class="section section-grid">
-            <div class="visual-grid">
-                <article class="panel visual-panel">
-                    <div class="panel-top">
-                        <div>
-                            <h3>Input Polygon</h3>
-                            <p class="caption" id="inputCaption">Awaiting dataset selection.</p>
-                        </div>
-                        <span class="tag" id="inputTag">Original</span>
-                    </div>
-                    <svg id="inputSvg" class="svg-stage" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
-                </article>
-
-                <article class="panel visual-panel">
-                    <div class="panel-top">
-                        <div>
-                            <h3>Output Polygon</h3>
-                            <p class="caption" id="outputCaption">Run the simplifier to render the current result.</p>
-                        </div>
-                        <span class="tag" id="outputTag">Simplified</span>
-                    </div>
-                    <svg id="outputSvg" class="svg-stage" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
-                </article>
-
-                <article class="panel visual-panel">
-                    <div class="panel-top">
-                        <div>
-                            <h3>Overlay Comparison</h3>
-                            <p class="caption" id="overlayCaption">Teal is the original boundary. Coral is the simplified boundary.</p>
-                        </div>
-                        <span class="tag" id="overlayTag">Comparison</span>
-                    </div>
-                    <svg id="overlaySvg" class="svg-stage" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
-                </article>
-            </div>
-        </section>
-
-        <section class="section section-grid">
-            <div class="chart-grid">
-                <article class="panel chart-panel">
-                    <div class="panel-top">
-                        <div>
-                            <h3>Runtime vs Input Size</h3>
-                            <p class="caption" id="runtimeFitText">Waiting for benchmark data.</p>
-                        </div>
-                        <span class="tag">Benchmark CSV</span>
-                    </div>
-                    <svg id="runtimeChart" class="chart-svg" viewBox="0 0 700 320" preserveAspectRatio="none"></svg>
-                </article>
-
-                <article class="panel chart-panel">
-                    <div class="panel-top">
-                        <div>
-                            <h3>Peak Memory vs Input Size</h3>
-                            <p class="caption" id="memoryFitText">Waiting for benchmark data.</p>
-                        </div>
-                        <span class="tag">Benchmark CSV</span>
-                    </div>
-                    <svg id="memoryChart" class="chart-svg" viewBox="0 0 700 320" preserveAspectRatio="none"></svg>
-                </article>
-
-                <article class="panel chart-panel">
-                    <div class="panel-top">
-                        <div>
-                            <h3>Areal Displacement vs Target Count</h3>
-                            <p class="caption" id="curveStatus">Run a reduction curve on the selected dataset to fill this chart.</p>
-                        </div>
-                        <span class="tag">Live exact runs</span>
-                    </div>
-                    <svg id="curveChart" class="chart-svg" viewBox="0 0 700 320" preserveAspectRatio="none"></svg>
-                </article>
+        <section class="panel brand">
+            <div>
+                <span class="eyebrow">Area and Topology Preserving Segment Collapse</span>
+                <h1 class="headline">Polygon reduction as a live, inspectable story.</h1>
+                <p class="subhead">
+                    This page is a showcase layer around your existing implementation. It never rewrites the
+                    simplified geometry. Every output view, metric card, and reduction study comes from the exact
+                    CSV and stdout emitted by <code>simplify</code>, plus the benchmark results already generated in this project.
+                </p>
+                <div class="metrics" id="metricGrid"></div>
+                <div class="dataset-note">
+                    <strong id="datasetTitle">No dataset selected</strong>
+                    <p id="datasetDescription">Choose a case on the left to preview the input polygon and run the current C++ algorithm on localhost.</p>
+                </div>
             </div>
 
+            <div class="hero-note">
+                <span class="tag">Exact output contract</span>
+                <p>Input geometry is loaded from the original CSV file under <code>tests/</code>. Output geometry is rendered from the exact lines printed by <code>simplify</code>.</p>
+                <p>Benchmark charts are drawn from <code>benchmarks/results/benchmark_results.csv</code>. The live reduction curve re-runs the selected case with multiple target counts using the same executable.</p>
+                <p id="previewMessage">Preview panels are ready. Dense rings may be sampled only for browser rendering, while the reported metrics remain exact.</p>
+            </div>
+        </section>
+    </section>
+
+    <!-- ── STORY CARDS ── -->
+    <section class="section section-grid">
+        <div class="story-grid">
+            <article class="panel story-card">
+                <h3>What This Proves</h3>
+                <strong>Shape change without hidden shortcuts.</strong>
+                <p>The site lets you compare the original polygon, the emitted simplified polygon, and their overlap. That makes the preservation story visible instead of purely numeric.</p>
+            </article>
+            <article class="panel story-card">
+                <h3>What The Charts Show</h3>
+                <strong>Scaling and displacement from project evidence.</strong>
+                <p>Runtime and peak-memory plots come from the benchmark CSV already recorded in this repository, with fitted power-law curves to summarize approximate scaling.</p>
+            </article>
+            <article class="panel story-card">
+                <h3>Why This Is Safe</h3>
+                <strong>The algorithm remains untouched.</strong>
+                <p>This page only reads files and calls the existing server endpoint that runs <code>simplify</code>. The geometry and metrics remain exactly the ones your C++ code produces.</p>
+            </article>
+        </div>
+    </section>
+
+    <!-- ── POLYGON VISUALS ── -->
+    <section class="section section-grid">
+        <div class="visual-grid">
+            <article class="panel visual-panel">
+                <div class="panel-top">
+                    <div><h3>Input Polygon</h3><p class="caption" id="inputCaption">Awaiting dataset selection.</p></div>
+                    <span class="tag" id="inputTag">Original</span>
+                </div>
+                <svg id="inputSvg" class="svg-stage" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
+            </article>
+            <article class="panel visual-panel">
+                <div class="panel-top">
+                    <div><h3>Output Polygon</h3><p class="caption" id="outputCaption">Run the simplifier to render the current result.</p></div>
+                    <span class="tag" id="outputTag">Simplified</span>
+                </div>
+                <svg id="outputSvg" class="svg-stage" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
+            </article>
+            <article class="panel visual-panel">
+                <div class="panel-top">
+                    <div><h3>Overlay Comparison</h3><p class="caption" id="overlayCaption">Teal is the original boundary. Coral is the simplified boundary.</p></div>
+                    <span class="tag" id="overlayTag">Comparison</span>
+                </div>
+                <svg id="overlaySvg" class="svg-stage" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
+            </article>
+        </div>
+    </section>
+
+    <!-- ── BENCHMARK CHARTS ── -->
+    <section class="section section-grid">
+        <div class="chart-grid">
             <article class="panel chart-panel">
                 <div class="panel-top">
-                    <div>
-                        <h3>Benchmark Evidence</h3>
-                        <p class="caption">Rows are loaded from <code>benchmarks/results/benchmark_results.csv</code> so the page stays in sync with the project artifacts.</p>
-                    </div>
-                    <span class="tag" id="benchmarkCountTag">0 rows</span>
+                    <div><h3>Runtime vs Input Size</h3><p class="caption" id="runtimeFitText">Waiting for benchmark data.</p></div>
+                    <span class="tag">Benchmark CSV</span>
                 </div>
-                <div class="benchmark-table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Label</th>
-                                <th>Input path</th>
-                                <th>Input vertices</th>
-                                <th>Output vertices</th>
-                                <th>Target</th>
-                                <th>Runtime (s)</th>
-                                <th>Peak RSS (KB)</th>
-                                <th>Areal displacement</th>
-                                <th>Notes</th>
-                            </tr>
-                        </thead>
-                        <tbody id="benchmarkTableBody"></tbody>
-                    </table>
-                </div>
+                <svg id="runtimeChart" class="chart-svg" viewBox="0 0 700 320" preserveAspectRatio="none"></svg>
             </article>
-        </section>
+            <article class="panel chart-panel">
+                <div class="panel-top">
+                    <div><h3>Peak Memory vs Input Size</h3><p class="caption" id="memoryFitText">Waiting for benchmark data.</p></div>
+                    <span class="tag">Benchmark CSV</span>
+                </div>
+                <svg id="memoryChart" class="chart-svg" viewBox="0 0 700 320" preserveAspectRatio="none"></svg>
+            </article>
+            <article class="panel chart-panel">
+                <div class="panel-top">
+                    <div><h3>Areal Displacement vs Target Count</h3><p class="caption" id="curveStatus">Run a reduction curve on the selected dataset to fill this chart.</p></div>
+                    <span class="tag">Live exact runs</span>
+                </div>
+                <svg id="curveChart" class="chart-svg" viewBox="0 0 700 320" preserveAspectRatio="none"></svg>
+            </article>
+        </div>
 
-        <section class="section section-grid">
-            <div class="raw-grid">
-                <article class="panel raw-panel">
-                    <div class="panel-top">
-                        <div>
-                            <h3>Exact Simplify Stdout</h3>
-                            <p class="caption">This is the raw C++ program output returned by the local server.</p>
-                        </div>
-                        <button id="copyStdout" class="btn-ghost">Copy stdout</button>
-                    </div>
-                    <pre id="stdoutPanel">No simplifier run yet.</pre>
-                </article>
-
-                <article class="panel raw-panel">
-                    <div class="panel-top">
-                        <div>
-                            <h3>Exact Emitted CSV Geometry</h3>
-                            <p class="caption">These are the geometry rows used for the output rendering.</p>
-                        </div>
-                        <button id="copyCsv" class="btn-ghost">Copy output CSV</button>
-                    </div>
-                    <pre id="csvPanel">No simplifier run yet.</pre>
-                </article>
+        <article class="panel chart-panel">
+            <div class="panel-top">
+                <div><h3>Benchmark Evidence</h3><p class="caption">Rows are loaded from <code>benchmarks/results/benchmark_results.csv</code> so the page stays in sync with the project artifacts.</p></div>
+                <span class="tag" id="benchmarkCountTag">0 rows</span>
             </div>
-
-            <div class="footer-note">
-                Dense polygons can contain hundreds of thousands of vertices. To keep the browser responsive, the
-                preview may decimate only the on-screen drawing when a ring is extremely dense. The metric cards,
-                stdout panel, and saved CSV geometry stay exact because they come straight from the C++ program.
+            <div class="benchmark-table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Label</th><th>Input path</th><th>Input vertices</th>
+                            <th>Output vertices</th><th>Target</th><th>Runtime (s)</th>
+                            <th>Peak RSS (KB)</th><th>Areal displacement</th><th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="benchmarkTableBody"></tbody>
+                </table>
             </div>
-        </section>
+        </article>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         CUSTOM TEST CASES SECTION  (new)
+         ══════════════════════════════════════════════════════════════════ -->
+    <div class="section-divider">
+        <div class="section-divider-text">
+            <h2>Custom Test Cases</h2>
+            <p>
+                10 hand-crafted stress datasets targeting different algorithmic failure modes —
+                fractal geometry, near-degenerate spikes, multi-ring holes, spiral self-proximity,
+                narrow corridors, oscillatory stars, and a smooth-circle baseline. Each is run live through the same C++ binary.
+            </p>
+        </div>
+        <button id="tcRunAllBtn" class="btn-gold" onclick="tcRunAll()">▶ Run All 10 Test Cases</button>
     </div>
 
-    <script>
-        const state = {
-            datasets: [],
-            selected: null,
-            inputCsv: "",
-            currentRun: null,
-            benchmarkRows: [],
-            sweepRows: [],
-            busy: false
-        };
+    <section class="section section-grid">
 
-        const metricDefaults = [
-            ["Input vertices", "-", "loaded from CSV"],
-            ["Target", "-", "requested simplification size"],
-            ["Output vertices", "-", "emitted by simplify"],
-            ["Input area", "-", "signed area from stdout"],
-            ["Output area", "-", "signed area from stdout"],
-            ["Areal displacement", "-", "reported by simplify"],
-            ["Runtime", "-", "measured by the server"],
-            ["Reduction", "-", "vertex-count change"],
-            ["Rings", "-", "input and output ring count"],
-            ["Area drift", "-", "absolute input-output difference"],
-            ["Benchmark note", "-", "nearest recorded case"],
-            ["Output status", "-", "ready for inspection"]
-        ];
+        <!-- 5 cards — one per test case -->
+        <div class="custom-tc-grid" id="tcCardGrid"></div>
 
-        function setStatus(message, tone = "info") {
-            const pill = document.getElementById("statusPill");
-            pill.dataset.tone = tone;
-            pill.innerHTML = `<p class="status-line">${escapeHtml(message)}</p>`;
-        }
-
-        function setBusy(busy) {
-            state.busy = busy;
-            document.getElementById("runButton").disabled = busy;
-            document.getElementById("sweepButton").disabled = busy || !state.selected;
-            document.getElementById("refreshBenchmarks").disabled = busy;
-        }
-
-        function escapeHtml(text) {
-            return String(text)
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#39;");
-        }
-
-        function formatNumber(value, digits = 3) {
-            if (value === null || value === undefined || Number.isNaN(Number(value))) return "-";
-            const n = Number(value);
-            if (!Number.isFinite(n)) return "-";
-            if (Math.abs(n) >= 100000 || (Math.abs(n) > 0 && Math.abs(n) < 0.001)) {
-                return n.toExponential(digits);
-            }
-            return n.toLocaleString(undefined, { maximumFractionDigits: digits });
-        }
-
-        function formatCompact(value, digits = 2) {
-            if (!Number.isFinite(Number(value))) return "-";
-            return Number(value).toLocaleString(undefined, {
-                notation: "compact",
-                maximumFractionDigits: digits
-            });
-        }
-
-        function setMetricCards(entries) {
-            const grid = document.getElementById("metricGrid");
-            grid.innerHTML = entries.map(([label, value, sub]) => `
-                <div class="metric">
-                    <div class="metric-label">${escapeHtml(label)}</div>
-                    <div class="metric-value">${escapeHtml(String(value))}</div>
-                    <div class="metric-sub">${escapeHtml(sub)}</div>
+        <!-- Live results table -->
+        <article class="panel chart-panel">
+            <div class="panel-top">
+                <div>
+                    <h3>Live Results</h3>
+                    <p class="caption" id="tcTableCaption">Results appear here after running the test cases above.</p>
                 </div>
-            `).join("");
-        }
+                <span class="tag" id="tcRunCount">0 / 10 run</span>
+            </div>
+            <div class="benchmark-table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th><th>Name</th><th>Type</th>
+                            <th>Input v</th><th>Target v</th><th>Output v</th>
+                            <th>Time (ms)</th><th>Areal displacement</th><th>Property targeted</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tcTableBody"></tbody>
+                </table>
+            </div>
+        </article>
 
-        function resetMetrics() {
-            setMetricCards(metricDefaults);
-        }
+        <!-- Displacement bar chart (live) -->
+        <article class="panel chart-panel">
+            <div class="panel-top">
+                <div><h3>Areal Displacement per Test Case</h3><p class="caption" id="tcDispCaption">Populated after running.</p></div>
+                <span class="tag">Log scale</span>
+            </div>
+            <svg id="tcDispChart" class="chart-svg" viewBox="0 0 700 320" preserveAspectRatio="none"></svg>
+        </article>
 
-        function parseCsv(text) {
-            const lines = text.replace(/\r/g, "").split("\n").filter(Boolean);
-            if (!lines.length) return [];
-            const header = lines[0].split(",");
-            return lines.slice(1).map((line) => {
-                const cols = line.split(",");
-                const row = {};
-                header.forEach((key, index) => {
-                    row[key.trim()] = (cols[index] || "").trim();
-                });
-                return row;
-            });
-        }
+    </section>
+    <!-- ══════════════════════════════════════════════════════════════════ -->
 
-        function parsePolygonCsv(text) {
-            const rows = parseCsv(text);
-            const ringMap = new Map();
-            rows.forEach((row) => {
-                const ringId = Number(row.ring_id);
-                if (!ringMap.has(ringId)) ringMap.set(ringId, []);
-                ringMap.get(ringId).push({
-                    x: Number(row.x),
-                    y: Number(row.y),
-                    vertexId: Number(row.vertex_id)
-                });
-            });
-            return Array.from(ringMap.entries())
-                .sort((a, b) => a[0] - b[0])
-                .map((entry) => entry[1].sort((a, b) => a.vertexId - b.vertexId));
-        }
+    <!-- ── RAW OUTPUT ── -->
+    <section class="section section-grid">
+        <div class="raw-grid">
+            <article class="panel raw-panel">
+                <div class="panel-top">
+                    <div><h3>Exact Simplify Stdout</h3><p class="caption">This is the raw C++ program output returned by the local server.</p></div>
+                    <button id="copyStdout" class="btn-ghost">Copy stdout</button>
+                </div>
+                <pre id="stdoutPanel">No simplifier run yet.</pre>
+            </article>
+            <article class="panel raw-panel">
+                <div class="panel-top">
+                    <div><h3>Exact Emitted CSV Geometry</h3><p class="caption">These are the geometry rows used for the output rendering.</p></div>
+                    <button id="copyCsv" class="btn-ghost">Copy output CSV</button>
+                </div>
+                <pre id="csvPanel">No simplifier run yet.</pre>
+            </article>
+        </div>
+        <div class="footer-note">
+            Dense polygons can contain hundreds of thousands of vertices. To keep the browser responsive, the
+            preview may decimate only the on-screen drawing when a ring is extremely dense. The metric cards,
+            stdout panel, and saved CSV geometry stay exact because they come straight from the C++ program.
+        </div>
+    </section>
 
-        function computeBounds(...ringSets) {
-            let minX = Infinity;
-            let minY = Infinity;
-            let maxX = -Infinity;
-            let maxY = -Infinity;
-            ringSets.flat().forEach((ring) => {
-                ring.forEach((point) => {
-                    minX = Math.min(minX, point.x);
-                    minY = Math.min(minY, point.y);
-                    maxX = Math.max(maxX, point.x);
-                    maxY = Math.max(maxY, point.y);
-                });
-            });
-            if (!Number.isFinite(minX)) return { minX: 0, minY: 0, maxX: 1, maxY: 1 };
-            if (Math.abs(maxX - minX) < 1e-9) maxX = minX + 1;
-            if (Math.abs(maxY - minY) < 1e-9) maxY = minY + 1;
-            return { minX, minY, maxX, maxY };
-        }
+</div><!-- .shell -->
 
-        function sampleRing(ring, limit = 6000) {
-            if (ring.length <= limit) return { points: ring, sampled: false };
-            const sampled = [];
-            const step = ring.length / limit;
-            for (let i = 0; i < limit; i += 1) {
-                sampled.push(ring[Math.floor(i * step)]);
-            }
-            return { points: sampled, sampled: true };
-        }
+<script>
+    /* ════════════════════════════════════════════════════════════════════
+       ORIGINAL DASHBOARD LOGIC (unchanged)
+       ════════════════════════════════════════════════════════════════════ */
 
-        function createTransform(bounds, width = 1000, height = 1000, pad = 60) {
-            const dx = bounds.maxX - bounds.minX;
-            const dy = bounds.maxY - bounds.minY;
-            const scale = Math.min((width - pad * 2) / dx, (height - pad * 2) / dy);
-            return function toView(point) {
-                return {
-                    x: pad + (point.x - bounds.minX) * scale,
-                    y: height - pad - (point.y - bounds.minY) * scale
-                };
-            };
-        }
+    const state = {
+        datasets: [], selected: null, inputCsv: "",
+        currentRun: null, benchmarkRows: [], sweepRows: [], busy: false
+    };
 
-        function makePath(rings, transform) {
-            let sampledCount = 0;
-            const segments = rings.map((ring) => {
-                const sample = sampleRing(ring);
-                if (sample.sampled) sampledCount += 1;
-                const points = sample.points.map(transform);
-                if (!points.length) return "";
-                const head = points[0];
-                const rest = points.slice(1).map((p) => `L ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" ");
-                return `M ${head.x.toFixed(2)} ${head.y.toFixed(2)} ${rest} Z`;
-            }).filter(Boolean);
-            return { d: segments.join(" "), sampledCount };
-        }
+    const metricDefaults = [
+        ["Input vertices","-","loaded from CSV"],["Target","-","requested simplification size"],
+        ["Output vertices","-","emitted by simplify"],["Input area","-","signed area from stdout"],
+        ["Output area","-","signed area from stdout"],["Areal displacement","-","reported by simplify"],
+        ["Runtime","-","measured by the server"],["Reduction","-","vertex-count change"],
+        ["Rings","-","input and output ring count"],["Area drift","-","absolute input-output difference"],
+        ["Benchmark note","-","nearest recorded case"],["Output status","-","ready for inspection"]
+    ];
 
-        function makePointCloud(rings, transform, limit = 220) {
-            const circles = [];
-            rings.forEach((ring) => {
-                if (ring.length > limit) return;
-                ring.forEach((point) => {
-                    const p = transform(point);
-                    circles.push(`<circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="2.1" />`);
-                });
-            });
-            return circles.join("");
-        }
+    function setStatus(message, tone = "info") {
+        const pill = document.getElementById("statusPill");
+        pill.dataset.tone = tone;
+        pill.innerHTML = `<p class="status-line">${escapeHtml(message)}</p>`;
+    }
 
-        function renderEmptySvg(svgId, message) {
-            const svg = document.getElementById(svgId);
-            svg.innerHTML = `
-                <rect x="0" y="0" width="1000" height="1000" fill="transparent"></rect>
-                <text x="500" y="500" text-anchor="middle" font-size="28" fill="#5f7380" font-family="Bahnschrift, Trebuchet MS, sans-serif">
-                    ${escapeHtml(message)}
-                </text>
-            `;
-        }
+    function setBusy(busy) {
+        state.busy = busy;
+        document.getElementById("runButton").disabled = busy;
+        document.getElementById("sweepButton").disabled = busy || !state.selected;
+        document.getElementById("refreshBenchmarks").disabled = busy;
+        const btn = document.getElementById("tcRunAllBtn");
+        if (btn) btn.disabled = busy;
+    }
 
-        function renderPolygonPair(inputRings, outputRings) {
-            if (!inputRings.length) {
-                renderEmptySvg("inputSvg", "No input geometry");
-                renderEmptySvg("outputSvg", "Run the simplifier");
-                renderEmptySvg("overlaySvg", "Comparison will appear here");
-                return;
-            }
+    function escapeHtml(text) {
+        return String(text).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+                           .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+    }
 
-            const bounds = computeBounds(inputRings, outputRings);
-            const transform = createTransform(bounds);
-            const inputPath = makePath(inputRings, transform);
-            const outputPath = makePath(outputRings, transform);
-            const inputDots = makePointCloud(inputRings, transform);
-            const outputDots = makePointCloud(outputRings, transform);
-            const sampled = inputPath.sampledCount + outputPath.sampledCount;
+    function formatNumber(value, digits = 3) {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) return "-";
+        const n = Number(value);
+        if (!Number.isFinite(n)) return "-";
+        if (Math.abs(n) >= 100000 || (Math.abs(n) > 0 && Math.abs(n) < 0.001)) return n.toExponential(digits);
+        return n.toLocaleString(undefined, { maximumFractionDigits: digits });
+    }
 
-            document.getElementById("previewMessage").textContent = sampled
-                ? `Preview sampled ${sampled} dense ring rendering path(s) for browser performance. The emitted CSV and reported metrics remain exact.`
-                : "Preview panels are rendering every vertex from the exact C++ geometry.";
+    function formatCompact(value, digits = 2) {
+        if (!Number.isFinite(Number(value))) return "-";
+        return Number(value).toLocaleString(undefined, { notation: "compact", maximumFractionDigits: digits });
+    }
 
-            document.getElementById("inputSvg").innerHTML = `
-                <path d="${inputPath.d}" fill="rgba(15, 118, 110, 0.16)" stroke="#0f766e" stroke-width="3" fill-rule="evenodd"></path>
-                <g fill="#0f766e">${inputDots}</g>
-            `;
+    function setMetricCards(entries) {
+        document.getElementById("metricGrid").innerHTML = entries.map(([label, value, sub]) => `
+            <div class="metric">
+                <div class="metric-label">${escapeHtml(label)}</div>
+                <div class="metric-value">${escapeHtml(String(value))}</div>
+                <div class="metric-sub">${escapeHtml(sub)}</div>
+            </div>`).join("");
+    }
 
-            document.getElementById("outputSvg").innerHTML = outputRings.length ? `
-                <path d="${outputPath.d}" fill="rgba(199, 91, 57, 0.16)" stroke="#c75b39" stroke-width="3" fill-rule="evenodd"></path>
-                <g fill="#c75b39">${outputDots}</g>
-            ` : `
-                <rect x="0" y="0" width="1000" height="1000" fill="transparent"></rect>
-                <text x="500" y="500" text-anchor="middle" font-size="28" fill="#5f7380" font-family="Bahnschrift, Trebuchet MS, sans-serif">
-                    Run the simplifier
-                </text>
-            `;
+    function resetMetrics() { setMetricCards(metricDefaults); }
 
-            document.getElementById("overlaySvg").innerHTML = `
-                <path d="${inputPath.d}" fill="rgba(15, 118, 110, 0.09)" stroke="#0f766e" stroke-width="3" fill-rule="evenodd"></path>
-                ${outputRings.length ? `<path d="${outputPath.d}" fill="rgba(199, 91, 57, 0.09)" stroke="#c75b39" stroke-width="3" fill-rule="evenodd"></path>` : ""}
-            `;
-        }
-
-        function countVertices(rings) {
-            return rings.reduce((total, ring) => total + ring.length, 0);
-        }
-
-        function findBenchmarkRow(rel) {
-            const normalized = rel.replace(/\\/g, "/");
-            return state.benchmarkRows.find((row) => row.input_path === `tests/${normalized}`);
-        }
-
-        function getMinimumTarget(inputVertices, ringCount) {
-            return Math.min(inputVertices, Math.max(3, ringCount * 3));
-        }
-
-        function chooseSuggestedTarget(item, inputVertices, ringCount) {
-            if (!Number.isFinite(inputVertices) || inputVertices <= 3) return 3;
-            const minimum = getMinimumTarget(inputVertices, ringCount);
-            const benchmarkTarget = Number(item.default_target || 0);
-            if (Number.isFinite(benchmarkTarget) && benchmarkTarget >= minimum && benchmarkTarget < inputVertices) {
-                return benchmarkTarget;
-            }
-            const proportional = Math.round(inputVertices * 0.7);
-            return Math.max(minimum, Math.min(inputVertices - 1, proportional));
-        }
-
-        function normalizeRunTarget(rawTarget, inputVertices, ringCount) {
-            const minimum = getMinimumTarget(inputVertices, ringCount);
-            if (!Number.isFinite(rawTarget)) return minimum;
-            if (inputVertices <= minimum) return minimum;
-            return Math.max(minimum, Math.min(inputVertices - 1, Math.round(rawTarget)));
-        }
-
-        function renderDatasetList() {
-            const list = document.getElementById("datasetList");
-            list.innerHTML = state.datasets.map((item) => {
-                const active = state.selected && state.selected.rel === item.rel ? "active" : "";
-                const note = item.notes || "No benchmark note recorded for this case yet.";
-                return `
-                    <button class="dataset-item ${active}" data-rel="${escapeHtml(item.rel)}">
-                        <div class="dataset-label">${escapeHtml(item.name)}</div>
-                        <div class="dataset-meta">${escapeHtml(item.rel)}<br>benchmark target ${escapeHtml(String(item.default_target || "-"))} | ${(item.bytes / 1024).toFixed(1)} KB<br>${escapeHtml(note)}</div>
-                    </button>
-                `;
-            }).join("");
-
-            list.querySelectorAll(".dataset-item").forEach((button) => {
-                button.addEventListener("click", () => {
-                    const rel = button.dataset.rel;
-                    const item = state.datasets.find((entry) => entry.rel === rel);
-                    if (item) selectDataset(item);
-                });
-            });
-        }
-
-        function renderMetricSnapshot() {
-            const inputRings = state.inputCsv ? parsePolygonCsv(state.inputCsv) : [];
-            const inputVertices = countVertices(inputRings);
-            const run = state.currentRun;
-            const benchmark = state.selected ? findBenchmarkRow(state.selected.rel) : null;
-            const target = Number(document.getElementById("targetVertices").value || 0);
-            const reduction = run && inputVertices ? ((inputVertices - run.output_vertices) / inputVertices) * 100 : null;
-            const areaDrift = run ? Math.abs(Number(run.input_area) - Number(run.output_area)) : null;
-            const ringSummary = run
-                ? `${inputRings.length} in / ${parsePolygonCsv(run.csv_output || "").length} out`
-                : `${inputRings.length || 0} input ring(s)`;
-
-            setMetricCards([
-                ["Input vertices", inputVertices ? formatCompact(inputVertices, 2) : "-", "loaded from selected CSV"],
-                ["Target", target || "-", "requested live reduction target"],
-                ["Output vertices", run ? formatCompact(run.output_vertices, 2) : "-", run ? "exact count emitted by simplify" : "awaiting run"],
-                ["Input area", run ? formatNumber(run.input_area, 4) : "-", "from exact stdout"],
-                ["Output area", run ? formatNumber(run.output_area, 4) : "-", "from exact stdout"],
-                ["Areal displacement", run ? formatNumber(run.areal_displacement, 4) : "-", "from exact stdout"],
-                ["Runtime", run ? `${formatNumber(run.elapsed_ms_real, 2)} ms` : "-", "server wall-clock timing"],
-                ["Reduction", run && Number.isFinite(reduction) ? `${formatNumber(reduction, 2)}%` : "-", "vertex-count decrease"],
-                ["Rings", ringSummary, "topology overview"],
-                ["Area drift", run && Number.isFinite(areaDrift) ? formatNumber(areaDrift, 6) : "-", "absolute input-output area delta"],
-                ["Benchmark note", benchmark ? benchmark.label : "-", benchmark ? benchmark.notes : "no benchmark row matched"],
-                ["Output status", run ? "Live result ready" : "Preview only", run ? "visuals and raw stdout are synced" : "select run to generate output"]
-            ]);
-        }
-
-        function parseBenchmarkRows(csvText) {
-            return parseCsv(csvText).map((row) => ({
-                label: row.label,
-                input_path: row.input_path,
-                target_vertices: Number(row.target_vertices),
-                input_vertices: Number(row.input_vertices),
-                output_vertices: Number(row.output_vertices),
-                elapsed_seconds: Number(row.elapsed_seconds),
-                peak_rss_kb: Number(row.peak_rss_kb),
-                reported_areal_displacement: Number(row.reported_areal_displacement),
-                notes: row.notes || ""
-            }));
-        }
-
-        function powerLawFit(points) {
-            const valid = points.filter((point) => point.x > 0 && point.y > 0);
-            if (valid.length < 2) return null;
-            const transformed = valid.map((point) => ({ x: Math.log(point.x), y: Math.log(point.y) }));
-            const n = transformed.length;
-            const sumX = transformed.reduce((sum, point) => sum + point.x, 0);
-            const sumY = transformed.reduce((sum, point) => sum + point.y, 0);
-            const sumXX = transformed.reduce((sum, point) => sum + point.x * point.x, 0);
-            const sumXY = transformed.reduce((sum, point) => sum + point.x * point.y, 0);
-            const denom = n * sumXX - sumX * sumX;
-            if (Math.abs(denom) < 1e-9) return null;
-            const k = (n * sumXY - sumX * sumY) / denom;
-            const logC = (sumY - k * sumX) / n;
-            return { c: Math.exp(logC), k };
-        }
-
-        function renderScatterChart(svgId, points, options) {
-            const svg = document.getElementById(svgId);
-            if (!points.length) {
-                svg.innerHTML = `<text x="350" y="160" text-anchor="middle" font-size="24" fill="#5f7380" font-family="Bahnschrift, Trebuchet MS, sans-serif">${escapeHtml(options.emptyMessage || "No data")}</text>`;
-                return;
-            }
-
-            const margin = { top: 18, right: 20, bottom: 42, left: 72 };
-            const width = 700;
-            const height = 320;
-            const innerWidth = width - margin.left - margin.right;
-            const innerHeight = height - margin.top - margin.bottom;
-            const xValues = points.map((point) => options.x(point));
-            const yValues = points.map((point) => options.y(point));
-            const xMin = Math.min(...xValues);
-            const xMax = Math.max(...xValues);
-            const yMin = Math.min(...yValues);
-            const yMax = Math.max(...yValues);
-            const fit = options.fit ? powerLawFit(points.map((point) => ({ x: options.x(point), y: options.y(point) }))) : null;
-
-            const logDenom = (Math.log10(xMax) - Math.log10(xMin)) || 1;
-            const scaleX = (value) => margin.left + ((Math.log10(value) - Math.log10(xMin)) / logDenom) * innerWidth;
-            const scaleY = (value) => margin.top + innerHeight - ((value - yMin) / ((yMax - yMin) || 1)) * innerHeight;
-            const xTicks = [xMin, Math.sqrt(xMin * xMax), xMax];
-            const yTicks = [yMin, (yMin + yMax) / 2, yMax];
-
-            const polyline = points.map((point) => `${scaleX(options.x(point)).toFixed(2)},${scaleY(options.y(point)).toFixed(2)}`).join(" ");
-            let fitPath = "";
-            let fitLabel = options.fitLabelDefault || "";
-            if (fit) {
-                const samples = [];
-                for (let i = 0; i < 48; i += 1) {
-                    const ratio = i / 47;
-                    const x = 10 ** (Math.log10(xMin) + (Math.log10(xMax) - Math.log10(xMin)) * ratio);
-                    const y = fit.c * (x ** fit.k);
-                    samples.push(`${scaleX(x).toFixed(2)},${scaleY(y).toFixed(2)}`);
-                }
-                fitPath = samples.join(" ");
-                fitLabel = `${options.fitSymbol || "y"} ~= ${fit.c.toExponential(2)} * n^${fit.k.toFixed(2)}`;
-            }
-
-            if (options.fitTextId) {
-                document.getElementById(options.fitTextId).textContent = fitLabel || options.fitLabelDefault || "";
-            }
-
-            svg.innerHTML = `
-                <rect x="0" y="0" width="${width}" height="${height}" fill="transparent"></rect>
-                <g stroke="rgba(17,33,45,0.12)" stroke-width="1">
-                    ${yTicks.map((value) => `<line x1="${margin.left}" y1="${scaleY(value).toFixed(2)}" x2="${width - margin.right}" y2="${scaleY(value).toFixed(2)}"></line>`).join("")}
-                    ${xTicks.map((value) => `<line x1="${scaleX(value).toFixed(2)}" y1="${margin.top}" x2="${scaleX(value).toFixed(2)}" y2="${height - margin.bottom}"></line>`).join("")}
-                </g>
-                <g stroke="#11212d" stroke-width="1.2">
-                    <line x1="${margin.left}" y1="${height - margin.bottom}" x2="${width - margin.right}" y2="${height - margin.bottom}"></line>
-                    <line x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${height - margin.bottom}"></line>
-                </g>
-                <g fill="#556975" font-size="11" font-family="Bahnschrift, Trebuchet MS, sans-serif">
-                    ${xTicks.map((value) => `<text x="${scaleX(value).toFixed(2)}" y="${height - 14}" text-anchor="middle">${escapeHtml(formatCompact(value, 2))}</text>`).join("")}
-                    ${yTicks.map((value) => `<text x="${margin.left - 10}" y="${(scaleY(value) + 4).toFixed(2)}" text-anchor="end">${escapeHtml(formatNumber(value, 2))}</text>`).join("")}
-                    <text x="${width / 2}" y="${height - 2}" text-anchor="middle">${escapeHtml(options.xLabel)}</text>
-                    <text x="18" y="${height / 2}" text-anchor="middle" transform="rotate(-90 18 ${height / 2})">${escapeHtml(options.yLabel)}</text>
-                </g>
-                ${fitPath ? `<polyline points="${fitPath}" fill="none" stroke="${options.fitColor || "#b5872f"}" stroke-width="2.4" stroke-dasharray="7 5"></polyline>` : ""}
-                <polyline points="${polyline}" fill="none" stroke="${options.lineColor}" stroke-width="2.6"></polyline>
-                <g fill="${options.pointColor}">
-                    ${points.map((point) => `<circle cx="${scaleX(options.x(point)).toFixed(2)}" cy="${scaleY(options.y(point)).toFixed(2)}" r="5.2"></circle>`).join("")}
-                </g>
-            `;
-        }
-
-        function renderCurveChart(rows) {
-            const sorted = [...rows].sort((a, b) => a.target - b.target);
-            if (!sorted.length) {
-                renderScatterChart("curveChart", [], { emptyMessage: "Run a live sweep to plot displacement." });
-                return;
-            }
-
-            const svg = document.getElementById("curveChart");
-            const margin = { top: 18, right: 20, bottom: 42, left: 72 };
-            const width = 700;
-            const height = 320;
-            const innerWidth = width - margin.left - margin.right;
-            const innerHeight = height - margin.top - margin.bottom;
-            const xValues = sorted.map((row) => row.target);
-            const yValues = sorted.map((row) => row.displacement);
-            const xMin = Math.min(...xValues);
-            const xMax = Math.max(...xValues);
-            const yMin = Math.min(...yValues);
-            const yMax = Math.max(...yValues);
-            const scaleX = (value) => margin.left + ((value - xMin) / ((xMax - xMin) || 1)) * innerWidth;
-            const scaleY = (value) => margin.top + innerHeight - ((value - yMin) / ((yMax - yMin) || 1)) * innerHeight;
-            const path = sorted.map((row, index) => `${index ? "L" : "M"} ${scaleX(row.target).toFixed(2)} ${scaleY(row.displacement).toFixed(2)}`).join(" ");
-
-            document.getElementById("curveStatus").textContent =
-                `${sorted.length} exact simplify runs. Lower targets usually increase displacement as more geometry is removed.`;
-
-            svg.innerHTML = `
-                <rect x="0" y="0" width="${width}" height="${height}" fill="transparent"></rect>
-                <g stroke="rgba(17,33,45,0.12)" stroke-width="1">
-                    ${[yMin, (yMin + yMax) / 2, yMax].map((value) => `<line x1="${margin.left}" y1="${scaleY(value).toFixed(2)}" x2="${width - margin.right}" y2="${scaleY(value).toFixed(2)}"></line>`).join("")}
-                </g>
-                <g stroke="#11212d" stroke-width="1.2">
-                    <line x1="${margin.left}" y1="${height - margin.bottom}" x2="${width - margin.right}" y2="${height - margin.bottom}"></line>
-                    <line x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${height - margin.bottom}"></line>
-                </g>
-                <path d="${path}" fill="none" stroke="#c75b39" stroke-width="2.8"></path>
-                <g fill="#c75b39">
-                    ${sorted.map((row) => `<circle cx="${scaleX(row.target).toFixed(2)}" cy="${scaleY(row.displacement).toFixed(2)}" r="5.1"></circle>`).join("")}
-                </g>
-                <g fill="#556975" font-size="11" font-family="Bahnschrift, Trebuchet MS, sans-serif">
-                    ${sorted.map((row) => `<text x="${scaleX(row.target).toFixed(2)}" y="${height - 14}" text-anchor="middle">${escapeHtml(String(row.target))}</text>`).join("")}
-                    ${[yMin, (yMin + yMax) / 2, yMax].map((value) => `<text x="${margin.left - 10}" y="${(scaleY(value) + 4).toFixed(2)}" text-anchor="end">${escapeHtml(formatNumber(value, 2))}</text>`).join("")}
-                    <text x="${width / 2}" y="${height - 2}" text-anchor="middle">target vertex count</text>
-                    <text x="18" y="${height / 2}" text-anchor="middle" transform="rotate(-90 18 ${height / 2})">reported areal displacement</text>
-                </g>
-            `;
-        }
-
-        function renderBenchmarkTable() {
-            const tbody = document.getElementById("benchmarkTableBody");
-            tbody.innerHTML = state.benchmarkRows.map((row) => `
-                <tr>
-                    <td>${escapeHtml(row.label)}</td>
-                    <td>${escapeHtml(row.input_path)}</td>
-                    <td>${escapeHtml(formatCompact(row.input_vertices, 2))}</td>
-                    <td>${escapeHtml(formatCompact(row.output_vertices, 2))}</td>
-                    <td>${escapeHtml(String(row.target_vertices))}</td>
-                    <td>${escapeHtml(formatNumber(row.elapsed_seconds, 3))}</td>
-                    <td>${escapeHtml(formatCompact(row.peak_rss_kb, 2))}</td>
-                    <td>${escapeHtml(formatNumber(row.reported_areal_displacement, 4))}</td>
-                    <td>${escapeHtml(row.notes)}</td>
-                </tr>
-            `).join("");
-            document.getElementById("benchmarkCountTag").textContent = `${state.benchmarkRows.length} rows`;
-        }
-
-        async function loadBenchmarks() {
-            const csvText = await fetch("/benchmarks/results/benchmark_results.csv").then((r) => r.text());
-            state.benchmarkRows = parseBenchmarkRows(csvText);
-            renderBenchmarkTable();
-            renderScatterChart("runtimeChart", state.benchmarkRows, {
-                x: (row) => row.input_vertices,
-                y: (row) => row.elapsed_seconds,
-                xLabel: "input vertices (log scale)",
-                yLabel: "runtime in seconds",
-                lineColor: "#0f766e",
-                pointColor: "#0f766e",
-                fit: true,
-                fitTextId: "runtimeFitText",
-                fitSymbol: "t"
-            });
-            renderScatterChart("memoryChart", state.benchmarkRows, {
-                x: (row) => row.input_vertices,
-                y: (row) => row.peak_rss_kb,
-                xLabel: "input vertices (log scale)",
-                yLabel: "peak RSS in KB",
-                lineColor: "#c75b39",
-                pointColor: "#c75b39",
-                fit: true,
-                fitTextId: "memoryFitText",
-                fitSymbol: "m"
-            });
-            renderMetricSnapshot();
-        }
-
-        async function loadDatasets() {
-            const response = await fetch("/api/list-tests");
-            const datasets = await response.json();
-            state.datasets = datasets;
-            if (!state.datasets.length) {
-                setStatus("No input CSV files were found under tests/.", "warn");
-                return;
-            }
-            renderDatasetList();
-            const preferred =
-                state.datasets.find((item) => item.rel === "custom/input_spiky_star_80.csv") ||
-                state.datasets.find((item) => item.rel === "input_blob_with_two_holes.csv") ||
-                state.datasets[0];
-            await selectDataset(preferred, true);
-        }
-
-        async function selectDataset(item, autoRun = false) {
-            state.selected = item;
-            state.inputCsv = "";
-            state.currentRun = null;
-            state.sweepRows = [];
-            renderDatasetList();
-            document.getElementById("datasetTitle").textContent = item.name;
-            document.getElementById("datasetDescription").textContent = item.notes || "This case is available for live execution with the current simplify binary.";
-            document.getElementById("stdoutPanel").textContent = "No simplifier run yet.";
-            document.getElementById("csvPanel").textContent = "No simplifier run yet.";
-            document.getElementById("curveStatus").textContent = "Run a reduction curve on the selected dataset to fill this chart.";
-            resetMetrics();
-            renderEmptySvg("outputSvg", "Run the simplifier");
-            renderEmptySvg("overlaySvg", "Comparison will appear here");
-            setStatus(`Loading ${item.rel} from tests/.`, "info");
-
-            const text = await fetch(`/api/get-file?f=${encodeURIComponent(item.rel)}`).then((r) => r.text());
-            state.inputCsv = text;
-            const inputRings = parsePolygonCsv(text);
-            const inputVertices = countVertices(inputRings);
-            const suggestedTarget = chooseSuggestedTarget(item, inputVertices, inputRings.length);
-            document.getElementById("targetVertices").value = suggestedTarget;
-            renderPolygonPair(inputRings, []);
-            document.getElementById("inputCaption").textContent = `${inputRings.length} ring(s), ${inputVertices} input vertices.`;
-            document.getElementById("outputCaption").textContent = "Run the simplifier to render the current result.";
-            document.getElementById("overlayCaption").textContent = "Teal is the original boundary. Coral is the simplified boundary.";
-            document.getElementById("inputTag").textContent = "Original";
-            document.getElementById("outputTag").textContent = "Pending run";
-            document.getElementById("overlayTag").textContent = "Awaiting result";
-            renderCurveChart([]);
-            renderMetricSnapshot();
-            setStatus(`Loaded ${item.name}. Suggested target set to ${suggestedTarget} so the simplifier will actually reduce the shape.`, "success");
-            document.getElementById("sweepButton").disabled = false;
-
-            if (autoRun) {
-                await runSelectedCase();
-            }
-        }
-
-        async function runSelectedCase() {
-            if (!state.selected || state.busy) return;
-            const inputRings = state.inputCsv ? parsePolygonCsv(state.inputCsv) : [];
-            const inputVertices = countVertices(inputRings);
-            let target = Number(document.getElementById("targetVertices").value);
-            if (!Number.isFinite(target) || target < 3) {
-                setStatus("Target vertices must be at least 3.", "error");
-                return;
-            }
-            const normalizedTarget = normalizeRunTarget(target, inputVertices, inputRings.length);
-            if (normalizedTarget !== target) {
-                document.getElementById("targetVertices").value = normalizedTarget;
-                target = normalizedTarget;
-                setStatus(`Adjusted target to ${target} so it stays below the ${inputVertices}-vertex input and produces a real simplification.`, "warn");
-            }
-
-            try {
-                setBusy(true);
-                setStatus(`Running simplify on ${state.selected.name} with target ${target}.`, "info");
-                const response = await fetch("/api/run-test", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ file: state.selected.rel, target })
-                });
-                const result = await response.json();
-                if (!result.ok) {
-                    document.getElementById("stdoutPanel").textContent = result.stdout || result.stderr || "Run failed.";
-                    document.getElementById("csvPanel").textContent = result.csv_output || "No CSV output.";
-                    setStatus(`simplify exited with code ${result.exit_code}.`, "error");
-                    return;
-                }
-                state.currentRun = result;
-                const outputRings = parsePolygonCsv(result.csv_output || "");
-                renderPolygonPair(inputRings, outputRings);
-                document.getElementById("stdoutPanel").textContent = result.stdout || "";
-                document.getElementById("csvPanel").textContent = result.csv_output || "";
-                document.getElementById("inputCaption").textContent = `${inputRings.length} ring(s), ${countVertices(inputRings)} input vertices.`;
-                document.getElementById("outputCaption").textContent = `${outputRings.length} ring(s), ${result.output_vertices} output vertices in ${(result.elapsed_ms_real || 0).toFixed(2)} ms.`;
-                document.getElementById("overlayCaption").textContent = `Area drift ${formatNumber(Math.abs(Number(result.input_area) - Number(result.output_area)), 6)} and displacement ${formatNumber(result.areal_displacement, 4)}.`;
-                document.getElementById("outputTag").textContent = `Target ${target}`;
-                document.getElementById("overlayTag").textContent = "Exact stdout overlay";
-                renderMetricSnapshot();
-                setStatus(`Run complete in ${(result.elapsed_ms_real || 0).toFixed(2)} ms. Geometry and stdout are now in sync.`, "success");
-            } catch (error) {
-                setStatus(`Run failed: ${error.message}`, "error");
-            } finally {
-                setBusy(false);
-            }
-        }
-
-        function buildSweepTargets(inputVertices, ringCount, preferredTarget) {
-            const minimum = Math.max(3, ringCount * 3);
-            const targets = new Set([preferredTarget, minimum]);
-            const fractions = inputVertices > 100000
-                ? [0.75, 0.5, 0.25, 0.12]
-                : inputVertices > 10000
-                    ? [0.9, 0.7, 0.5, 0.3, 0.15]
-                    : [0.92, 0.8, 0.65, 0.5, 0.35, 0.2, 0.12];
-            fractions.forEach((fraction) => targets.add(Math.max(minimum, Math.round(inputVertices * fraction))));
-            return Array.from(targets)
-                .filter((value) => Number.isFinite(value) && value >= minimum && value <= inputVertices)
-                .sort((a, b) => b - a);
-        }
-
-        async function runReductionCurve() {
-            if (!state.selected || state.busy) return;
-            const inputRings = parsePolygonCsv(state.inputCsv);
-            const inputVertices = countVertices(inputRings);
-            const preferredTarget = Number(document.getElementById("targetVertices").value);
-            const targets = buildSweepTargets(inputVertices, inputRings.length, preferredTarget);
-
-            state.sweepRows = [];
-            renderCurveChart([]);
-
-            try {
-                setBusy(true);
-                for (let index = 0; index < targets.length; index += 1) {
-                    const target = targets[index];
-                    setStatus(`Building reduction curve ${index + 1}/${targets.length}: target ${target}.`, "info");
-                    const response = await fetch("/api/run-test", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ file: state.selected.rel, target })
-                    });
-                    const result = await response.json();
-                    if (!result.ok) throw new Error(`curve run failed at target ${target}`);
-                    state.sweepRows.push({
-                        target,
-                        output_vertices: Number(result.output_vertices),
-                        displacement: Number(result.areal_displacement),
-                        elapsed_ms: Number(result.elapsed_ms_real)
-                    });
-                    renderCurveChart(state.sweepRows);
-                }
-                document.getElementById("curveStatus").textContent = `Exact reduction curve built from ${state.sweepRows.length} live runs on ${state.selected.name}.`;
-                setStatus(`Reduction curve complete with ${state.sweepRows.length} exact runs.`, "success");
-            } catch (error) {
-                document.getElementById("curveStatus").textContent = "Curve generation stopped before completion.";
-                setStatus(error.message, "error");
-            } finally {
-                setBusy(false);
-            }
-        }
-
-        async function copyPre(id) {
-            const text = document.getElementById(id).textContent;
-            await navigator.clipboard.writeText(text);
-            setStatus(`Copied ${id === "stdoutPanel" ? "stdout" : "output CSV"} to clipboard.`, "success");
-        }
-
-        document.getElementById("runButton").addEventListener("click", runSelectedCase);
-        document.getElementById("sweepButton").addEventListener("click", runReductionCurve);
-        document.getElementById("refreshBenchmarks").addEventListener("click", async () => {
-            try {
-                setStatus("Reloading benchmark charts from benchmark_results.csv.", "info");
-                await loadBenchmarks();
-                setStatus("Benchmark charts reloaded.", "success");
-            } catch (error) {
-                setStatus(`Could not reload benchmark data: ${error.message}`, "error");
-            }
+    function parseCsv(text) {
+        const lines = text.replace(/\r/g,"").split("\n").filter(Boolean);
+        if (!lines.length) return [];
+        const header = lines[0].split(",");
+        return lines.slice(1).map(line => {
+            const cols = line.split(","), row = {};
+            header.forEach((key, i) => { row[key.trim()] = (cols[i] || "").trim(); });
+            return row;
         });
-        document.getElementById("copyStdout").addEventListener("click", () => copyPre("stdoutPanel"));
-        document.getElementById("copyCsv").addEventListener("click", () => copyPre("csvPanel"));
+    }
 
+    function parsePolygonCsv(text) {
+        const rows = parseCsv(text);
+        const ringMap = new Map();
+        rows.forEach(row => {
+            const rid = Number(row.ring_id);
+            if (!ringMap.has(rid)) ringMap.set(rid, []);
+            ringMap.get(rid).push({ x: Number(row.x), y: Number(row.y), vertexId: Number(row.vertex_id) });
+        });
+        return Array.from(ringMap.entries()).sort((a,b)=>a[0]-b[0])
+                    .map(e => e[1].sort((a,b)=>a.vertexId-b.vertexId));
+    }
+
+    function computeBounds(...ringSets) {
+        let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+        ringSets.flat().forEach(ring => ring.forEach(p => {
+            minX=Math.min(minX,p.x); minY=Math.min(minY,p.y);
+            maxX=Math.max(maxX,p.x); maxY=Math.max(maxY,p.y);
+        }));
+        if (!Number.isFinite(minX)) return { minX:0,minY:0,maxX:1,maxY:1 };
+        if (Math.abs(maxX-minX)<1e-9) maxX=minX+1;
+        if (Math.abs(maxY-minY)<1e-9) maxY=minY+1;
+        return { minX, minY, maxX, maxY };
+    }
+
+    function sampleRing(ring, limit=6000) {
+        if (ring.length<=limit) return { points:ring, sampled:false };
+        const sampled=[], step=ring.length/limit;
+        for (let i=0; i<limit; i++) sampled.push(ring[Math.floor(i*step)]);
+        return { points:sampled, sampled:true };
+    }
+
+    function createTransform(bounds, width=1000, height=1000, pad=60) {
+        const dx=bounds.maxX-bounds.minX, dy=bounds.maxY-bounds.minY;
+        const scale=Math.min((width-pad*2)/dx, (height-pad*2)/dy);
+        return p => ({
+            x: pad+(p.x-bounds.minX)*scale,
+            y: height-pad-(p.y-bounds.minY)*scale
+        });
+    }
+
+    function makePath(rings, transform) {
+        let sampledCount=0;
+        const segments=rings.map(ring=>{
+            const s=sampleRing(ring); if(s.sampled) sampledCount++;
+            const pts=s.points.map(transform); if(!pts.length) return "";
+            return `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)} `+
+                   pts.slice(1).map(p=>`L ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" ")+" Z";
+        }).filter(Boolean);
+        return { d:segments.join(" "), sampledCount };
+    }
+
+    function makePointCloud(rings, transform, limit=220) {
+        const circles=[];
+        rings.forEach(ring=>{
+            if(ring.length>limit) return;
+            ring.forEach(p=>{ const q=transform(p); circles.push(`<circle cx="${q.x.toFixed(2)}" cy="${q.y.toFixed(2)}" r="2.1"/>`); });
+        });
+        return circles.join("");
+    }
+
+    function renderEmptySvg(svgId, message) {
+        document.getElementById(svgId).innerHTML=`
+            <rect x="0" y="0" width="1000" height="1000" fill="transparent"/>
+            <text x="500" y="500" text-anchor="middle" font-size="28" fill="#5f7380" font-family="Bahnschrift,Trebuchet MS,sans-serif">${escapeHtml(message)}</text>`;
+    }
+
+    function renderPolygonPair(inputRings, outputRings) {
+        if (!inputRings.length) {
+            renderEmptySvg("inputSvg","No input geometry");
+            renderEmptySvg("outputSvg","Run the simplifier");
+            renderEmptySvg("overlaySvg","Comparison will appear here");
+            return;
+        }
+        const bounds=computeBounds(inputRings, outputRings);
+        const transform=createTransform(bounds);
+        const inputPath=makePath(inputRings, transform);
+        const outputPath=makePath(outputRings, transform);
+        const inputDots=makePointCloud(inputRings, transform);
+        const outputDots=makePointCloud(outputRings, transform);
+        const sampled=inputPath.sampledCount+outputPath.sampledCount;
+        document.getElementById("previewMessage").textContent=sampled
+            ? `Preview sampled ${sampled} dense ring rendering path(s) for browser performance. Metrics remain exact.`
+            : "Preview panels are rendering every vertex from the exact C++ geometry.";
+        document.getElementById("inputSvg").innerHTML=`
+            <path d="${inputPath.d}" fill="rgba(15,118,110,0.16)" stroke="#0f766e" stroke-width="3" fill-rule="evenodd"/>
+            <g fill="#0f766e">${inputDots}</g>`;
+        document.getElementById("outputSvg").innerHTML=outputRings.length?`
+            <path d="${outputPath.d}" fill="rgba(199,91,57,0.16)" stroke="#c75b39" stroke-width="3" fill-rule="evenodd"/>
+            <g fill="#c75b39">${outputDots}</g>`:`
+            <rect x="0" y="0" width="1000" height="1000" fill="transparent"/>
+            <text x="500" y="500" text-anchor="middle" font-size="28" fill="#5f7380" font-family="Bahnschrift,Trebuchet MS,sans-serif">Run the simplifier</text>`;
+        document.getElementById("overlaySvg").innerHTML=`
+            <path d="${inputPath.d}" fill="rgba(15,118,110,0.09)" stroke="#0f766e" stroke-width="3" fill-rule="evenodd"/>
+            ${outputRings.length?`<path d="${outputPath.d}" fill="rgba(199,91,57,0.09)" stroke="#c75b39" stroke-width="3" fill-rule="evenodd"/>`:``}`;
+    }
+
+    function countVertices(rings) { return rings.reduce((t,r)=>t+r.length, 0); }
+    function findBenchmarkRow(rel) {
+        const norm=rel.replace(/\\/g,"/");
+        return state.benchmarkRows.find(r=>r.input_path===`tests/${norm}`);
+    }
+    function getMinimumTarget(inputVertices, ringCount) { return Math.min(inputVertices, Math.max(3,ringCount*3)); }
+    function chooseSuggestedTarget(item, inputVertices, ringCount) {
+        if (!Number.isFinite(inputVertices)||inputVertices<=3) return 3;
+        const minimum=getMinimumTarget(inputVertices,ringCount);
+        const bt=Number(item.default_target||0);
+        if (Number.isFinite(bt)&&bt>=minimum&&bt<inputVertices) return bt;
+        return Math.max(minimum, Math.min(inputVertices-1, Math.round(inputVertices*0.7)));
+    }
+    function normalizeRunTarget(rawTarget, inputVertices, ringCount) {
+        const minimum=getMinimumTarget(inputVertices,ringCount);
+        if (!Number.isFinite(rawTarget)) return minimum;
+        if (inputVertices<=minimum) return minimum;
+        return Math.max(minimum, Math.min(inputVertices-1, Math.round(rawTarget)));
+    }
+
+    function renderDatasetList() {
+        const list=document.getElementById("datasetList");
+        list.innerHTML=state.datasets.map(item=>{
+            const active=state.selected&&state.selected.rel===item.rel?"active":"";
+            const note=item.notes||"No benchmark note recorded for this case yet.";
+            return `<button class="dataset-item ${active}" data-rel="${escapeHtml(item.rel)}">
+                <div class="dataset-label">${escapeHtml(item.name)}</div>
+                <div class="dataset-meta">${escapeHtml(item.rel)}<br>benchmark target ${escapeHtml(String(item.default_target||"-"))} | ${(item.bytes/1024).toFixed(1)} KB<br>${escapeHtml(note)}</div>
+            </button>`;
+        }).join("");
+        list.querySelectorAll(".dataset-item").forEach(btn=>{
+            btn.addEventListener("click",()=>{
+                const item=state.datasets.find(e=>e.rel===btn.dataset.rel);
+                if(item) selectDataset(item);
+            });
+        });
+    }
+
+    function renderMetricSnapshot() {
+        const inputRings=state.inputCsv?parsePolygonCsv(state.inputCsv):[];
+        const inputVertices=countVertices(inputRings);
+        const run=state.currentRun;
+        const benchmark=state.selected?findBenchmarkRow(state.selected.rel):null;
+        const target=Number(document.getElementById("targetVertices").value||0);
+        const reduction=run&&inputVertices?((inputVertices-run.output_vertices)/inputVertices)*100:null;
+        const areaDrift=run?Math.abs(Number(run.input_area)-Number(run.output_area)):null;
+        const ringSummary=run?`${inputRings.length} in / ${parsePolygonCsv(run.csv_output||"").length} out`:`${inputRings.length||0} input ring(s)`;
+        setMetricCards([
+            ["Input vertices",inputVertices?formatCompact(inputVertices,2):"-","loaded from selected CSV"],
+            ["Target",target||"-","requested live reduction target"],
+            ["Output vertices",run?formatCompact(run.output_vertices,2):"-",run?"exact count emitted by simplify":"awaiting run"],
+            ["Input area",run?formatNumber(run.input_area,4):"-","from exact stdout"],
+            ["Output area",run?formatNumber(run.output_area,4):"-","from exact stdout"],
+            ["Areal displacement",run?formatNumber(run.areal_displacement,4):"-","from exact stdout"],
+            ["Runtime",run?`${formatNumber(run.elapsed_ms_real,2)} ms`:"-","server wall-clock timing"],
+            ["Reduction",run&&Number.isFinite(reduction)?`${formatNumber(reduction,2)}%`:"-","vertex-count decrease"],
+            ["Rings",ringSummary,"topology overview"],
+            ["Area drift",run&&Number.isFinite(areaDrift)?formatNumber(areaDrift,6):"-","absolute input-output area delta"],
+            ["Benchmark note",benchmark?benchmark.label:"-",benchmark?benchmark.notes:"no benchmark row matched"],
+            ["Output status",run?"Live result ready":"Preview only",run?"visuals and raw stdout are synced":"select run to generate output"]
+        ]);
+    }
+
+    function parseBenchmarkRows(csvText) {
+        return parseCsv(csvText).map(row=>({
+            label: row.label, input_path: row.input_path,
+            target_vertices: Number(row.target_vertices), input_vertices: Number(row.input_vertices),
+            output_vertices: Number(row.output_vertices), elapsed_seconds: Number(row.elapsed_seconds),
+            peak_rss_kb: Number(row.peak_rss_kb), reported_areal_displacement: Number(row.reported_areal_displacement),
+            notes: row.notes||""
+        }));
+    }
+
+    function powerLawFit(points) {
+        const valid=points.filter(p=>p.x>0&&p.y>0);
+        if (valid.length<2) return null;
+        const t=valid.map(p=>({x:Math.log(p.x),y:Math.log(p.y)}));
+        const n=t.length, sx=t.reduce((s,p)=>s+p.x,0), sy=t.reduce((s,p)=>s+p.y,0);
+        const sxx=t.reduce((s,p)=>s+p.x*p.x,0), sxy=t.reduce((s,p)=>s+p.x*p.y,0);
+        const denom=n*sxx-sx*sx;
+        if (Math.abs(denom)<1e-9) return null;
+        const k=(n*sxy-sx*sy)/denom, logC=(sy-k*sx)/n;
+        return { c:Math.exp(logC), k };
+    }
+
+    function renderScatterChart(svgId, points, options) {
+        const svg=document.getElementById(svgId);
+        if (!points.length) {
+            svg.innerHTML=`<text x="350" y="160" text-anchor="middle" font-size="24" fill="#5f7380" font-family="Bahnschrift,Trebuchet MS,sans-serif">${escapeHtml(options.emptyMessage||"No data")}</text>`;
+            return;
+        }
+        const margin={top:18,right:20,bottom:42,left:72}, W=700, H=320;
+        const iW=W-margin.left-margin.right, iH=H-margin.top-margin.bottom;
+        const xs=points.map(p=>options.x(p)), ys=points.map(p=>options.y(p));
+        const xMin=Math.min(...xs), xMax=Math.max(...xs), yMin=Math.min(...ys), yMax=Math.max(...ys);
+        const fit=options.fit?powerLawFit(points.map(p=>({x:options.x(p),y:options.y(p)}))):null;
+        const logD=(Math.log10(xMax)-Math.log10(xMin))||1;
+        const scX=v=>margin.left+((Math.log10(v)-Math.log10(xMin))/logD)*iW;
+        const scY=v=>margin.top+iH-((v-yMin)/((yMax-yMin)||1))*iH;
+        const xTicks=[xMin,Math.sqrt(xMin*xMax),xMax], yTicks=[yMin,(yMin+yMax)/2,yMax];
+        const polyline=points.map(p=>`${scX(options.x(p)).toFixed(2)},${scY(options.y(p)).toFixed(2)}`).join(" ");
+        let fitPath="", fitLabel=options.fitLabelDefault||"";
+        if (fit) {
+            const samps=[];
+            for(let i=0;i<48;i++){const r=i/47,x=10**(Math.log10(xMin)+(Math.log10(xMax)-Math.log10(xMin))*r);samps.push(`${scX(x).toFixed(2)},${scY(fit.c*(x**fit.k)).toFixed(2)}`);}
+            fitPath=samps.join(" ");
+            fitLabel=`${options.fitSymbol||"y"} ~= ${fit.c.toExponential(2)} * n^${fit.k.toFixed(2)}`;
+        }
+        if (options.fitTextId) document.getElementById(options.fitTextId).textContent=fitLabel||options.fitLabelDefault||"";
+        svg.innerHTML=`
+            <rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>
+            <g stroke="rgba(17,33,45,0.12)" stroke-width="1">
+                ${yTicks.map(v=>`<line x1="${margin.left}" y1="${scY(v).toFixed(2)}" x2="${W-margin.right}" y2="${scY(v).toFixed(2)}"/>`).join("")}
+                ${xTicks.map(v=>`<line x1="${scX(v).toFixed(2)}" y1="${margin.top}" x2="${scX(v).toFixed(2)}" y2="${H-margin.bottom}"/>`).join("")}
+            </g>
+            <g stroke="#11212d" stroke-width="1.2">
+                <line x1="${margin.left}" y1="${H-margin.bottom}" x2="${W-margin.right}" y2="${H-margin.bottom}"/>
+                <line x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${H-margin.bottom}"/>
+            </g>
+            <g fill="#556975" font-size="11" font-family="Bahnschrift,Trebuchet MS,sans-serif">
+                ${xTicks.map(v=>`<text x="${scX(v).toFixed(2)}" y="${H-14}" text-anchor="middle">${escapeHtml(formatCompact(v,2))}</text>`).join("")}
+                ${yTicks.map(v=>`<text x="${margin.left-10}" y="${(scY(v)+4).toFixed(2)}" text-anchor="end">${escapeHtml(formatNumber(v,2))}</text>`).join("")}
+                <text x="${W/2}" y="${H-2}" text-anchor="middle">${escapeHtml(options.xLabel)}</text>
+                <text x="18" y="${H/2}" text-anchor="middle" transform="rotate(-90 18 ${H/2})">${escapeHtml(options.yLabel)}</text>
+            </g>
+            ${fitPath?`<polyline points="${fitPath}" fill="none" stroke="${options.fitColor||"#b5872f"}" stroke-width="2.4" stroke-dasharray="7 5"/>`:""}
+            <polyline points="${polyline}" fill="none" stroke="${options.lineColor}" stroke-width="2.6"/>
+            <g fill="${options.pointColor}">
+                ${points.map(p=>`<circle cx="${scX(options.x(p)).toFixed(2)}" cy="${scY(options.y(p)).toFixed(2)}" r="5.2"/>`).join("")}
+            </g>`;
+    }
+
+    function renderCurveChart(rows) {
+        const sorted=[...rows].sort((a,b)=>a.target-b.target);
+        if (!sorted.length) { renderScatterChart("curveChart",[],{emptyMessage:"Run a live sweep to plot displacement."}); return; }
+        const W=700,H=320, margin={top:18,right:20,bottom:42,left:72};
+        const iW=W-margin.left-margin.right, iH=H-margin.top-margin.bottom;
+        const xs=sorted.map(r=>r.target), ys=sorted.map(r=>r.displacement);
+        const xMin=Math.min(...xs),xMax=Math.max(...xs),yMin=Math.min(...ys),yMax=Math.max(...ys);
+        const scX=v=>margin.left+((v-xMin)/((xMax-xMin)||1))*iW;
+        const scY=v=>margin.top+iH-((v-yMin)/((yMax-yMin)||1))*iH;
+        const path=sorted.map((r,i)=>`${i?"L":"M"} ${scX(r.target).toFixed(2)} ${scY(r.displacement).toFixed(2)}`).join(" ");
+        document.getElementById("curveStatus").textContent=`${sorted.length} exact simplify runs. Lower targets usually increase displacement as more geometry is removed.`;
+        const svg=document.getElementById("curveChart");
+        const yTicks=[yMin,(yMin+yMax)/2,yMax];
+        svg.innerHTML=`
+            <rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>
+            <g stroke="rgba(17,33,45,0.12)" stroke-width="1">${yTicks.map(v=>`<line x1="${margin.left}" y1="${scY(v).toFixed(2)}" x2="${W-margin.right}" y2="${scY(v).toFixed(2)}"/>`).join("")}</g>
+            <g stroke="#11212d" stroke-width="1.2"><line x1="${margin.left}" y1="${H-margin.bottom}" x2="${W-margin.right}" y2="${H-margin.bottom}"/><line x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${H-margin.bottom}"/></g>
+            <path d="${path}" fill="none" stroke="#c75b39" stroke-width="2.8"/>
+            <g fill="#c75b39">${sorted.map(r=>`<circle cx="${scX(r.target).toFixed(2)}" cy="${scY(r.displacement).toFixed(2)}" r="5.1"/>`).join("")}</g>
+            <g fill="#556975" font-size="11" font-family="Bahnschrift,Trebuchet MS,sans-serif">
+                ${sorted.map(r=>`<text x="${scX(r.target).toFixed(2)}" y="${H-14}" text-anchor="middle">${escapeHtml(String(r.target))}</text>`).join("")}
+                ${yTicks.map(v=>`<text x="${margin.left-10}" y="${(scY(v)+4).toFixed(2)}" text-anchor="end">${escapeHtml(formatNumber(v,2))}</text>`).join("")}
+                <text x="${W/2}" y="${H-2}" text-anchor="middle">target vertex count</text>
+                <text x="18" y="${H/2}" text-anchor="middle" transform="rotate(-90 18 ${H/2})">reported areal displacement</text>
+            </g>`;
+    }
+
+    function renderBenchmarkTable() {
+        document.getElementById("benchmarkTableBody").innerHTML=state.benchmarkRows.map(r=>`<tr>
+            <td>${escapeHtml(r.label)}</td><td>${escapeHtml(r.input_path)}</td>
+            <td>${escapeHtml(formatCompact(r.input_vertices,2))}</td>
+            <td>${escapeHtml(formatCompact(r.output_vertices,2))}</td>
+            <td>${escapeHtml(String(r.target_vertices))}</td>
+            <td>${escapeHtml(formatNumber(r.elapsed_seconds,3))}</td>
+            <td>${escapeHtml(formatCompact(r.peak_rss_kb,2))}</td>
+            <td>${escapeHtml(formatNumber(r.reported_areal_displacement,4))}</td>
+            <td>${escapeHtml(r.notes)}</td></tr>`).join("");
+        document.getElementById("benchmarkCountTag").textContent=`${state.benchmarkRows.length} rows`;
+    }
+
+    async function loadBenchmarks() {
+        const csvText=await fetch("/benchmarks/results/benchmark_results.csv").then(r=>r.text());
+        state.benchmarkRows=parseBenchmarkRows(csvText);
+        renderBenchmarkTable();
+        renderScatterChart("runtimeChart", state.benchmarkRows, { x:r=>r.input_vertices, y:r=>r.elapsed_seconds, xLabel:"input vertices (log scale)", yLabel:"runtime in seconds", lineColor:"#0f766e", pointColor:"#0f766e", fit:true, fitTextId:"runtimeFitText", fitSymbol:"t" });
+        renderScatterChart("memoryChart",  state.benchmarkRows, { x:r=>r.input_vertices, y:r=>r.peak_rss_kb,      xLabel:"input vertices (log scale)", yLabel:"peak RSS in KB",      lineColor:"#c75b39", pointColor:"#c75b39", fit:true, fitTextId:"memoryFitText",  fitSymbol:"m" });
+        renderMetricSnapshot();
+    }
+
+    async function loadDatasets() {
+        const datasets=await fetch("/api/list-tests").then(r=>r.json());
+        state.datasets=datasets;
+        if (!state.datasets.length) { setStatus("No input CSV files were found under tests/.","warn"); return; }
+        renderDatasetList();
+        const preferred=state.datasets.find(i=>i.rel==="custom/input_spiky_star_80.csv")||state.datasets.find(i=>i.rel==="input_blob_with_two_holes.csv")||state.datasets[0];
+        await selectDataset(preferred,true);
+    }
+
+    async function selectDataset(item, autoRun=false) {
+        state.selected=item; state.inputCsv=""; state.currentRun=null; state.sweepRows=[];
+        renderDatasetList();
+        document.getElementById("datasetTitle").textContent=item.name;
+        document.getElementById("datasetDescription").textContent=item.notes||"This case is available for live execution with the current simplify binary.";
+        document.getElementById("stdoutPanel").textContent="No simplifier run yet.";
+        document.getElementById("csvPanel").textContent="No simplifier run yet.";
+        document.getElementById("curveStatus").textContent="Run a reduction curve on the selected dataset to fill this chart.";
         resetMetrics();
-        renderEmptySvg("inputSvg", "Loading datasets");
-        renderEmptySvg("outputSvg", "Run the simplifier");
-        renderEmptySvg("overlaySvg", "Comparison will appear here");
-        renderScatterChart("runtimeChart", [], { emptyMessage: "Loading benchmark CSV" });
-        renderScatterChart("memoryChart", [], { emptyMessage: "Loading benchmark CSV" });
+        renderEmptySvg("outputSvg","Run the simplifier");
+        renderEmptySvg("overlaySvg","Comparison will appear here");
+        setStatus(`Loading ${item.rel} from tests/.`,"info");
+        const text=await fetch(`/api/get-file?f=${encodeURIComponent(item.rel)}`).then(r=>r.text());
+        state.inputCsv=text;
+        const inputRings=parsePolygonCsv(text);
+        const inputVertices=countVertices(inputRings);
+        const suggestedTarget=chooseSuggestedTarget(item,inputVertices,inputRings.length);
+        document.getElementById("targetVertices").value=suggestedTarget;
+        renderPolygonPair(inputRings,[]);
+        document.getElementById("inputCaption").textContent=`${inputRings.length} ring(s), ${inputVertices} input vertices.`;
+        document.getElementById("outputCaption").textContent="Run the simplifier to render the current result.";
+        document.getElementById("overlayCaption").textContent="Teal is the original boundary. Coral is the simplified boundary.";
+        document.getElementById("inputTag").textContent="Original";
+        document.getElementById("outputTag").textContent="Pending run";
+        document.getElementById("overlayTag").textContent="Awaiting result";
         renderCurveChart([]);
+        renderMetricSnapshot();
+        setStatus(`Loaded ${item.name}. Suggested target set to ${suggestedTarget}.`,"success");
+        document.getElementById("sweepButton").disabled=false;
+        if (autoRun) await runSelectedCase();
+    }
 
-        (async function init() {
-            try {
-                await Promise.all([loadBenchmarks(), loadDatasets()]);
-            } catch (error) {
-                setStatus(`Dashboard startup failed: ${error.message}`, "error");
-            } finally {
-                setBusy(false);
+    async function runSelectedCase() {
+        if (!state.selected||state.busy) return;
+        const inputRings=state.inputCsv?parsePolygonCsv(state.inputCsv):[];
+        const inputVertices=countVertices(inputRings);
+        let target=Number(document.getElementById("targetVertices").value);
+        if (!Number.isFinite(target)||target<3) { setStatus("Target vertices must be at least 3.","error"); return; }
+        const norm=normalizeRunTarget(target,inputVertices,inputRings.length);
+        if (norm!==target) { document.getElementById("targetVertices").value=norm; target=norm; setStatus(`Adjusted target to ${target}.`,"warn"); }
+        try {
+            setBusy(true);
+            setStatus(`Running simplify on ${state.selected.name} with target ${target}.`,"info");
+            const result=await fetch("/api/run-test",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({file:state.selected.rel,target})}).then(r=>r.json());
+            if (!result.ok) { document.getElementById("stdoutPanel").textContent=result.stdout||result.stderr||"Run failed."; document.getElementById("csvPanel").textContent=result.csv_output||"No CSV output."; setStatus(`simplify exited with code ${result.exit_code}.`,"error"); return; }
+            state.currentRun=result;
+            const outputRings=parsePolygonCsv(result.csv_output||"");
+            renderPolygonPair(inputRings,outputRings);
+            document.getElementById("stdoutPanel").textContent=result.stdout||"";
+            document.getElementById("csvPanel").textContent=result.csv_output||"";
+            document.getElementById("inputCaption").textContent=`${inputRings.length} ring(s), ${countVertices(inputRings)} input vertices.`;
+            document.getElementById("outputCaption").textContent=`${outputRings.length} ring(s), ${result.output_vertices} output vertices in ${(result.elapsed_ms_real||0).toFixed(2)} ms.`;
+            document.getElementById("overlayCaption").textContent=`Area drift ${formatNumber(Math.abs(Number(result.input_area)-Number(result.output_area)),6)} and displacement ${formatNumber(result.areal_displacement,4)}.`;
+            document.getElementById("outputTag").textContent=`Target ${target}`;
+            document.getElementById("overlayTag").textContent="Exact stdout overlay";
+            renderMetricSnapshot();
+            setStatus(`Run complete in ${(result.elapsed_ms_real||0).toFixed(2)} ms.`,"success");
+        } catch(e) { setStatus(`Run failed: ${e.message}`,"error"); }
+        finally { setBusy(false); }
+    }
+
+    function buildSweepTargets(inputVertices, ringCount, preferredTarget) {
+        const minimum=Math.max(3,ringCount*3);
+        const targets=new Set([preferredTarget,minimum]);
+        const fractions=inputVertices>100000?[0.75,0.5,0.25,0.12]:inputVertices>10000?[0.9,0.7,0.5,0.3,0.15]:[0.92,0.8,0.65,0.5,0.35,0.2,0.12];
+        fractions.forEach(f=>targets.add(Math.max(minimum,Math.round(inputVertices*f))));
+        return Array.from(targets).filter(v=>Number.isFinite(v)&&v>=minimum&&v<=inputVertices).sort((a,b)=>b-a);
+    }
+
+    async function runReductionCurve() {
+        if (!state.selected||state.busy) return;
+        const inputRings=parsePolygonCsv(state.inputCsv);
+        const inputVertices=countVertices(inputRings);
+        const targets=buildSweepTargets(inputVertices,inputRings.length,Number(document.getElementById("targetVertices").value));
+        state.sweepRows=[]; renderCurveChart([]);
+        try {
+            setBusy(true);
+            for (let i=0;i<targets.length;i++) {
+                const target=targets[i];
+                setStatus(`Building reduction curve ${i+1}/${targets.length}: target ${target}.`,"info");
+                const result=await fetch("/api/run-test",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({file:state.selected.rel,target})}).then(r=>r.json());
+                if (!result.ok) throw new Error(`curve run failed at target ${target}`);
+                state.sweepRows.push({target,output_vertices:Number(result.output_vertices),displacement:Number(result.areal_displacement),elapsed_ms:Number(result.elapsed_ms_real)});
+                renderCurveChart(state.sweepRows);
             }
-        })();
-    </script>
+            document.getElementById("curveStatus").textContent=`Exact reduction curve built from ${state.sweepRows.length} live runs on ${state.selected.name}.`;
+            setStatus(`Reduction curve complete with ${state.sweepRows.length} exact runs.`,"success");
+        } catch(e) { document.getElementById("curveStatus").textContent="Curve generation stopped before completion."; setStatus(e.message,"error"); }
+        finally { setBusy(false); }
+    }
+
+    async function copyPre(id) {
+        await navigator.clipboard.writeText(document.getElementById(id).textContent);
+        setStatus(`Copied ${id==="stdoutPanel"?"stdout":"output CSV"} to clipboard.`,"success");
+    }
+
+    document.getElementById("runButton").addEventListener("click",runSelectedCase);
+    document.getElementById("sweepButton").addEventListener("click",runReductionCurve);
+    document.getElementById("refreshBenchmarks").addEventListener("click",async()=>{
+        try { setStatus("Reloading benchmark charts.","info"); await loadBenchmarks(); setStatus("Benchmark charts reloaded.","success"); }
+        catch(e) { setStatus(`Could not reload: ${e.message}`,"error"); }
+    });
+    document.getElementById("copyStdout").addEventListener("click",()=>copyPre("stdoutPanel"));
+    document.getElementById("copyCsv").addEventListener("click",()=>copyPre("csvPanel"));
+
+    resetMetrics();
+    renderEmptySvg("inputSvg","Loading datasets");
+    renderEmptySvg("outputSvg","Run the simplifier");
+    renderEmptySvg("overlaySvg","Comparison will appear here");
+    renderScatterChart("runtimeChart",[],{emptyMessage:"Loading benchmark CSV"});
+    renderScatterChart("memoryChart",[],{emptyMessage:"Loading benchmark CSV"});
+    renderCurveChart([]);
+
+    /* ════════════════════════════════════════════════════════════════════
+       CUSTOM TEST CASES LOGIC  (new)
+       ════════════════════════════════════════════════════════════════════ */
+
+    const TC_CASES = [
+        { id:1,  name:"TC1 – Smooth Circle",        file:"custom/input_tc1_circle_4000v.csv",                       target:2000, type:"circle",     typeClass:"circle",    note:"Uniform circle; clean baseline for scaling. Near-zero displacement expected." },
+        { id:2,  name:"TC2 – Fractal Coastline",    file:"custom/input_tc2_fractal_3072v.csv",                      target:1536, type:"fractal",    typeClass:"fractal",   note:"Koch snowflake depth 5. Self-similar near-collinear runs stress E-point solver." },
+        { id:3,  name:"TC3 – 50 Holes",             file:"custom/input_tc3_holes_50.csv",                           target:332,  type:"multi-ring", typeClass:"multihole", note:"51 rings (outer + 50 holes). Tests multi-ring budget routing and per-ring guard." },
+        { id:4,  name:"TC4 – Degenerate Spikes",    file:"custom/input_tc4_spikes_2003v.csv",                       target:1001, type:"spikes",     typeClass:"spikes",    note:"Zigzag h=1e-4 spikes. Tests ε=1e-9 intersection threshold." },
+        { id:5,  name:"TC5 – Outward Spiral",       file:"custom/input_tc5_spiral_5000v.csv",                       target:2500, type:"spiral",     typeClass:"spiral",    note:"Self-proximate edges throughout. Hammers spatial grid query count per collapse." },
+        { id:6,  name:"Narrow Corridor",            file:"custom/input_narrow_corridor_with_two_holes.csv",         target:9,    type:"corridor",   typeClass:"multihole", note:"Narrow-gap polygon with 2 holes. Aggressive collapses can bridge hole to exterior." },
+        { id:7,  name:"Spiky Star (80v)",           file:"custom/input_spiky_star_80.csv",                          target:40,   type:"star",       typeClass:"spikes",    note:"80-point star ring. Many near-equivalent collapse choices stress tie-breaking." },
+        { id:8,  name:"Nine Holes Grid",            file:"custom/input_grid_with_nine_holes.csv",                   target:36,   type:"multi-ring", typeClass:"multihole", note:"300×300 rect with 9 octagonal holes. Stresses ring bookkeeping and intersection checks." },
+        { id:9,  name:"High-Vertex Wavy (720v)",    file:"custom/input_high_vertex_wavy_ring_720.csv",              target:180,  type:"high-n",     typeClass:"circle",    note:"720-vertex wavy ring. Runtime and memory scaling check for priority queue." },
+        { id:10, name:"Near-Degenerate Strip",      file:"custom/input_near_degenerate_corrugated_strip_122.csv",   target:40,   type:"degenerate", typeClass:"fractal",   note:"Thin corrugated strip. Amplifies floating-point sensitivity near collinear edges." }
+    ];
+
+    const tcResults = {};
+
+    function tcBuildCards() {
+        const grid = document.getElementById("tcCardGrid");
+        grid.innerHTML = TC_CASES.map(tc => `
+            <div class="tc-card" id="tc-card-${tc.id}">
+                <div class="tc-card-label">Test Case ${tc.id}</div>
+                <div class="tc-card-name">${escapeHtml(tc.name)}</div>
+                <span class="tc-badge ${tc.typeClass}">${escapeHtml(tc.type)}</span>
+                <div class="tc-card-body">${escapeHtml(tc.note)}</div>
+                <div class="tc-run-status idle" id="tc-status-${tc.id}">idle</div>
+                <div class="tc-result-row" id="tc-result-${tc.id}" style="display:none">
+                    Time: <span id="tc-time-${tc.id}">—</span> ms &nbsp;|&nbsp;
+                    Disp: <span id="tc-disp-${tc.id}">—</span>
+                </div>
+            </div>`).join("");
+
+        // build empty table rows
+        const tbody = document.getElementById("tcTableBody");
+        tbody.innerHTML = TC_CASES.map(tc => `
+            <tr id="tc-row-${tc.id}">
+                <td>${tc.id}</td>
+                <td><strong>${escapeHtml(tc.name)}</strong></td>
+                <td><span class="tc-badge ${tc.typeClass}">${escapeHtml(tc.type)}</span></td>
+                <td id="tc-inv-${tc.id}">—</td>
+                <td>${tc.target.toLocaleString()}</td>
+                <td id="tc-outv-${tc.id}">—</td>
+                <td id="tc-tms-${tc.id}">—</td>
+                <td id="tc-ad-${tc.id}" style="font-family:var(--mono);font-size:12px">—</td>
+                <td style="font-size:12px;color:var(--ink-soft)">${escapeHtml(tc.note)}</td>
+            </tr>`).join("");
+    }
+
+    function tcUpdateCard(id, status, data) {
+        const st = document.getElementById(`tc-status-${id}`);
+        st.className = `tc-run-status ${status}`;
+        st.textContent = status;
+        if (data) {
+            document.getElementById(`tc-time-${id}`).textContent = data.timeMs.toFixed(1);
+            document.getElementById(`tc-disp-${id}`).textContent = data.disp.toExponential(3);
+            document.getElementById(`tc-result-${id}`).style.display = "block";
+        }
+    }
+
+    function tcUpdateTableRow(id, data) {
+        document.getElementById(`tc-inv-${id}`).textContent  = data.inputVerts.toLocaleString();
+        document.getElementById(`tc-outv-${id}`).textContent = data.outputVerts.toLocaleString();
+        document.getElementById(`tc-tms-${id}`).textContent  = data.timeMs.toFixed(1) + " ms";
+        document.getElementById(`tc-ad-${id}`).textContent   = data.disp.toExponential(3);
+    }
+
+    function tcRenderDispChart() {
+        const done = TC_CASES.filter(tc => tcResults[tc.id]);
+        if (!done.length) return;
+        const W=700, H=320, margin={top:20,right:20,bottom:48,left:76};
+        const iW=W-margin.left-margin.right, iH=H-margin.top-margin.bottom;
+        const colors = {circle:"#0f766e",fractal:"#5b21b6",multihole:"#166534",spikes:"#9a3412",spiral:"#9d174d"};
+        const vals = done.map(tc => tcResults[tc.id].disp).filter(v=>v>0);
+        if (!vals.length) return;
+        const yMin = Math.min(...vals), yMax = Math.max(...vals);
+        const logMin = Math.log10(yMin*0.5), logMax = Math.log10(yMax*2);
+        const scX = i => margin.left + (i/(done.length-1||1)) * iW;
+        const scY = v => v<=0 ? margin.top+iH : margin.top + iH - ((Math.log10(v)-logMin)/(logMax-logMin))*iH;
+        const yTicks = [logMin, (logMin+logMax)/2, logMax].map(l=>10**l);
+        const svg = document.getElementById("tcDispChart");
+        svg.innerHTML = `
+            <rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>
+            <g stroke="rgba(17,33,45,0.1)" stroke-width="1">
+                ${yTicks.map(v=>`<line x1="${margin.left}" y1="${scY(v).toFixed(1)}" x2="${W-margin.right}" y2="${scY(v).toFixed(1)}"/>`).join("")}
+            </g>
+            <g stroke="#11212d" stroke-width="1.2">
+                <line x1="${margin.left}" y1="${H-margin.bottom}" x2="${W-margin.right}" y2="${H-margin.bottom}"/>
+                <line x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${H-margin.bottom}"/>
+            </g>
+            ${done.map((tc,i)=>{
+                const d=tcResults[tc.id]; const col=colors[tc.typeClass]||"#0f766e";
+                const cx=scX(i), cy=scY(d.disp); const barH=H-margin.bottom-cy;
+                return `<rect x="${(cx-18).toFixed(1)}" y="${cy.toFixed(1)}" width="36" height="${Math.max(2,barH).toFixed(1)}" fill="${col}" rx="4" opacity="0.85"/>
+                        <text x="${cx.toFixed(1)}" y="${H-margin.bottom+16}" text-anchor="middle" font-size="11" fill="#556975" font-family="Bahnschrift,Trebuchet MS,sans-serif">TC${tc.id}</text>
+                        <text x="${cx.toFixed(1)}" y="${(cy-5).toFixed(1)}" text-anchor="middle" font-size="10" fill="${col}" font-family="Bahnschrift,Trebuchet MS,sans-serif">${d.disp.toExponential(1)}</text>`;
+            }).join("")}
+            <g fill="#556975" font-size="11" font-family="Bahnschrift,Trebuchet MS,sans-serif">
+                ${yTicks.map(v=>`<text x="${margin.left-8}" y="${(scY(v)+4).toFixed(1)}" text-anchor="end">${v.toExponential(0)}</text>`).join("")}
+                <text x="${W/2}" y="${H-4}" text-anchor="middle">test case</text>
+                <text x="16" y="${H/2}" text-anchor="middle" transform="rotate(-90 16 ${H/2})">areal displacement (log)</text>
+            </g>`;
+        document.getElementById("tcDispCaption").textContent = `${done.length} of 10 cases complete. Log scale — values span orders of magnitude across geometry types.`;
+    }
+
+    async function tcRunOne(tc) {
+        tcUpdateCard(tc.id, "running", null);
+        try {
+            const result = await fetch("/api/run-test", {
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body: JSON.stringify({ file: tc.file, target: tc.target })
+            }).then(r => r.json());
+
+            if (!result.ok) { tcUpdateCard(tc.id,"error",null); return; }
+
+            const data = {
+                inputVerts:  result.input_vertices,
+                outputVerts: result.output_vertices,
+                timeMs:      result.elapsed_ms_real,
+                disp:        result.areal_displacement
+            };
+            tcResults[tc.id] = data;
+            tcUpdateCard(tc.id, "ok", data);
+            tcUpdateTableRow(tc.id, data);
+        } catch(e) { tcUpdateCard(tc.id,"error",null); }
+    }
+
+    window.tcRunAll = async function() {
+        const btn = document.getElementById("tcRunAllBtn");
+        btn.disabled = true;
+        btn.textContent = "⏳ Running…";
+        Object.keys(tcResults).forEach(k=>delete tcResults[k]);
+        tcBuildCards();
+        let done = 0;
+        for (const tc of TC_CASES) {
+            await tcRunOne(tc);
+            done++;
+            document.getElementById("tcRunCount").textContent = `${done} / 10 run`;
+            tcRenderDispChart();
+        }
+        btn.disabled = false;
+        btn.textContent = "▶ Run All 5 Test Cases";
+        document.getElementById("tcTableCaption").textContent = "All 10 custom test cases complete. Results are from live /api/run-test calls.";
+        setStatus("All 10 custom test cases complete.","success");
+    };
+
+    tcBuildCards();
+
+    /* init */
+    (async function init() {
+        try { await Promise.all([loadBenchmarks(), loadDatasets()]); }
+        catch(e) { setStatus(`Dashboard startup failed: ${e.message}`,"error"); }
+        finally { setBusy(false); }
+    })();
+</script>
 </body>
 </html>
