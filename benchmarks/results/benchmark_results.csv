@@ -1,0 +1,8 @@
+label,input_path,target_vertices,input_vertices,output_vertices,elapsed_seconds,peak_rss_kb,reported_areal_displacement,notes
+custom_narrow_corridor,tests/custom/input_narrow_corridor_with_two_holes.csv,9,12,12,0.610000,30696,0,Narrow-gap multi-ring topology stress
+custom_spiky_star,tests/custom/input_spiky_star_80.csv,40,80,40,0.490000,30688,4787.65343144469,Oscillatory single-ring boundary
+custom_nine_holes,tests/custom/input_grid_with_nine_holes.csv,36,76,36,0.550000,30692,2466.79108919341,Many-hole bookkeeping stress
+custom_high_vertex_ring,tests/custom/input_high_vertex_wavy_ring_720.csv,180,720,180,0.600000,30488,211.824625139678,High-vertex-count scaling case
+custom_near_degenerate_strip,tests/custom/input_near_degenerate_corrugated_strip_122.csv,40,122,40,0.520000,30516,30.5844416239941,Near-degenerate thin-strip geometry
+official_lake_small,tests/input_original_04.csv,99,6733,99,0.590000,30692,9629168.72702192,Instructor-provided medium-size single ring
+official_lake_large,tests/input_original_09.csv,99,409998,99,10.160000,239180,1743669108.56689,Instructor-provided large single ring

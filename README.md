@@ -1,34 +1,200 @@
-# CSD2183 Data Structures Project 2 Starter
+# CSD2183 Data Structures Project 2
 
-This repository is a compile-ready starter for the assignment in
-`area_and_topology_preserving_polygon_simplification.pdf`.
+Area- and topology-preserving polygon simplification in C++17 using an APSC-style greedy
+collapse loop with linked-ring updates, a priority queue for candidate selection, and a spatial
+grid for fast intersection checks.
 
-It already includes:
+## Current Status
 
-- a `Makefile` that builds `simplify`
-- CSV input parsing for polygons with one exterior ring and zero or more holes
-- geometry helpers for signed area, ring orientation, simplicity checks, and ring intersection checks
-- a starter `Simplifier` class with APSC-oriented extension points and TODO markers
-- sample input/output files and smoke-test scripts
+This repository now contains a working `simplify` executable rather than the original starter-only
+baseline. The current implementation:
 
-It does **not** yet implement the full Area-Preserving Segment Collapse (APSC) algorithm from
-Kronenfeld et al. (2020). Right now, if the target vertex count is lower than the current vertex
-count, the program keeps the polygon unchanged and reports zero areal displacement. That makes
-this a safe baseline to build on, not a finished submission.
+- reads `./simplify <input_file.csv> <target_vertices>`
+- preserves the signed area of each ring within floating-point tolerance
+- preserves ring count and ring orientation
+- avoids self-intersections and ring-ring intersections on the tested datasets
+- reports total signed area and total areal displacement in scientific notation
+- uses a priority queue plus versioning to lazily invalidate stale collapse candidates
+- uses a spatial grid to accelerate intersection checks
 
-## Assignment Requirements
+The project also includes:
 
-From the PDF, your final submission needs to do all of the following:
+- smoke tests
+- reference-file comparisons
+- rubric-aligned geometric validation
+- custom challenge datasets
+- a benchmark runner for runtime and peak memory measurements
 
-- read `./simplify <input_file.csv> <target_vertices>`
-- output the simplified polygon in the exact CSV-style format required by the brief
-- preserve the area of each ring within floating-point tolerance
-- preserve topology: same number of rings, no self-intersections, no ring-ring intersections
-- reduce the polygon to at most the requested number of vertices when possible
-- minimize areal displacement using APSC as the core algorithm
-- include tests, documentation, and performance evaluation
+## Build
 
-## Project Layout
+Build on Linux, macOS, or WSL:
+
+```bash
+make
+```
+
+This creates:
+
+```bash
+./simplify
+```
+
+## Run
+
+```bash
+./simplify tests/data/example_input.csv 12
+```
+
+Output format:
+
+- `ring_id,vertex_id,x,y`
+- one CSV row per output vertex
+- three summary lines:
+  - `Total signed area in input: ...`
+  - `Total signed area in output: ...`
+  - `Total areal displacement: ...`
+
+Debug or status text should go to standard error, not standard output.
+
+## Test Results
+
+### Smoke Test
+
+PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tests/run_smoke_test.ps1
+```
+
+Local result:
+
+```text
+Smoke test passed.
+```
+
+### Rubric-Aligned Validation
+
+PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tests/run_rubric_checks.ps1
+```
+
+What this checks:
+
+- ring count preservation
+- per-ring signed-area preservation
+- output ring orientation
+- self-intersection and ring-ring intersection failures
+- output metric consistency
+- whether the output stays above the requested target
+
+Local result:
+
+```text
+All rubric checks passed.
+```
+
+### Reference-File Comparison
+
+PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tests/run_fixture_tests.ps1
+```
+
+Note:
+
+- the teaching-team clarification says exact coordinate-by-coordinate matching is not required
+- the rubric-aligned validator is therefore the more meaningful correctness check for grading
+- the fixture diff is still useful as a stricter regression check
+
+## Custom Challenge Datasets
+
+Additional datasets live in [tests/custom/README.md]
+
+Included custom cases:
+
+- `input_narrow_corridor_with_two_holes.csv`
+  Targets narrow gaps between holes and the exterior ring, where valid collapses can easily create
+  intersections if topology checks are too weak.
+- `input_spiky_star_80.csv`
+  Targets oscillating boundaries with alternating spikes and many local collapse candidates.
+- `input_grid_with_nine_holes.csv`
+  Targets multi-ring handling and repeated intersection checks across many interior rings.
+- `input_high_vertex_wavy_ring_720.csv`
+  Targets high vertex count and gives a cleaner scaling point for runtime and peak-memory plots.
+- `input_near_degenerate_corrugated_strip_122.csv`
+  Targets near-degenerate thin geometry with many almost-collinear edges, which is useful for
+  floating-point robustness and metric-consistency checks.
+
+Generate or regenerate them with:
+
+```bash
+python tests/custom/generate_custom_datasets.py
+```
+
+## Benchmarking
+
+Benchmark artifacts live in `benchmarks/`.
+
+Case manifest:
+
+- [benchmarks/cases.csv](CSD2183_DataStructure_Project2/benchmarks/cases.csv)
+
+Runner:
+
+- [benchmarks/run_benchmarks.py](CSD2183_DataStructure_Project2/benchmarks/run_benchmarks.py)
+
+PowerShell wrapper:
+
+- [benchmarks/run_benchmarks.ps1](CSD2183_DataStructure_Project2/benchmarks/run_benchmarks.ps1)
+
+Sample report:
+
+- [benchmarks/REPORT.md](CSD2183_DataStructure_Project2/benchmarks/REPORT.md)
+
+Run the benchmark suite from PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File benchmarks/run_benchmarks.ps1
+```
+
+Or directly inside Linux/WSL:
+
+```bash
+python3 benchmarks/run_benchmarks.py
+```
+
+The benchmark runner records:
+
+- input vertex count
+- output vertex count
+- elapsed time in seconds
+- peak RSS memory in kilobytes
+- reported areal displacement
+
+Results are written to:
+
+```text
+benchmarks/results/benchmark_results.csv
+```
+
+## Dependencies
+
+Core build dependency:
+
+- `g++` with C++17 support
+
+Optional dependency for exact symmetric-difference displacement reporting:
+
+- Python with `shapely`
+
+If `shapely` is available, the program uses [tools/compute_symdiff_area.sh](/c:/Users/elvis/Desktop/CUSTOM_engine/CSD2183_DataStructure_Project2/tools/compute_symdiff_area.sh)
+to compute exact final areal displacement from the emitted geometry. If not available, the code
+falls back to its internal displacement estimate.
+
+## Repository Layout
 
 ```text
 include/
@@ -41,74 +207,26 @@ src/
   main.cpp
   simplifier.cpp
 tests/
+  custom/
   data/
-    example_input.csv
-    example_expected_noop.txt
   run_smoke_test.ps1
-  run_smoke_test.sh
-Makefile
-```
-
-## Build
-
-On macOS / Linux / WSL:
-
-```bash
-make
-```
-
-This should create:
-
-```bash
-./simplify
-```
-
-## Run
-
-```bash
-./simplify tests/data/example_input.csv 12
-```
-
-If the target is equal to or larger than the current vertex count, the output should match the
-input geometry and print area totals plus zero displacement.
-
-## What To Implement Next
-
-The main missing work is inside [`src/simplifier.cpp`](/c:/Users/elvis/Desktop/CUSTOM_engine/CSD2183_DataStructure_Project2/src/simplifier.cpp):
-
-1. Compute the APSC replacement point `E` for each 4-vertex chain `A -> B -> C -> D`.
-2. Estimate areal displacement for each candidate collapse.
-3. Store candidates in a priority queue keyed by minimum displacement.
-4. Check whether replacing `A -> B -> C -> D` with `A -> E -> D` keeps topology valid.
-5. Apply the collapse and update only the affected local neighborhood.
-6. Repeat until the target vertex count is reached or no valid collapse remains.
-
-## Suggested Implementation Roadmap
-
-1. Replace the current vector-only ring representation with a structure that supports fast local
-   edits, such as a linked vertex structure or DCEL-inspired ring nodes.
-2. Add a `std::priority_queue` or custom heap for candidate collapses.
-3. Add a spatial index for fast intersection checks.
-4. Implement lazy invalidation or versioning so old heap entries can be discarded cheaply.
-5. Add instructor-provided test cases and your own stress tests.
-6. Measure runtime and memory usage on increasing input sizes.
-
-## Smoke Test
-
-Unix-like shell:
-
-```bash
-sh tests/run_smoke_test.sh
-```
-
-PowerShell:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File tests/run_smoke_test.ps1
+  run_fixture_tests.ps1
+  run_rubric_checks.ps1
+  validate_output.py
+benchmarks/
+  cases.csv
+  run_benchmarks.py
+  run_benchmarks.ps1
+  REPORT.md
+tools/
+  compute_symdiff_area.py
+  compute_symdiff_area.sh
 ```
 
 ## Notes
 
-- Debug/status messages go to standard error so standard output stays in the assignment format.
-- The code includes comments around the key extension points so it is easier to continue from here.
-- No third-party geometry library is required for this starter.
+- The current implementation is aligned with the clarified grading guidance that focuses on area
+  preservation, topology preservation, metric consistency, and valid greedy simplification rather
+  than exact coordinate-by-coordinate matching with a reference file.
+- For the final submission package, you still need the separate AI interaction log, AI usage report,
+  and video presentation required by the PDF brief.
