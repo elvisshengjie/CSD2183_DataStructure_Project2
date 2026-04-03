@@ -5,8 +5,8 @@
  * ─────────
  *  GET  /                      → dashboard.html
  *  GET  /dashboard.html        → dashboard.html
- *  GET  /api/list-tests        → JSON list of CSV files found in tests/data/
- *  GET  /api/get-file?f=<rel>  → raw content of a file under tests/data/
+ *  GET  /api/list-tests        → JSON list of input CSV files found in tests/
+ *  GET  /api/get-file?f=<rel>  → raw content of a file under tests/
  *  POST /api/run-test          → body: {"file":"<rel>","target":<int>}
  *                                runs ./simplify and returns JSON result
  *
@@ -23,6 +23,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -149,11 +150,11 @@ static std::string sanitize_path(const std::string& raw) {
     return p;
 }
 
-// Resolve a relative path that the client claims is under tests/data/.
+// Resolve a relative path that the client claims is under tests/.
 // Returns empty string if it escapes the sandbox.
 static std::string safe_test_path(const std::string& rel) {
     if (rel.find("..") != std::string::npos) return {};
-    fs::path base = fs::path("tests") / "data";
+    fs::path base = fs::path("tests");
     fs::path full = base / rel;
     // Canonical check: make sure the resolved path starts with base.
     std::error_code ec;
@@ -168,26 +169,87 @@ static std::string safe_test_path(const std::string& rel) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 struct TestFile {
-    std::string rel;   // path relative to tests/data/
+    std::string rel;   // path relative to tests/
     std::string name;  // filename only
     std::size_t bytes;
+    std::string label;
+    int default_target = 0;
+    std::string notes;
 };
+
+struct CaseMeta {
+    std::string rel;
+    std::string label;
+    int default_target = 0;
+    std::string notes;
+};
+
+static std::string normalize_test_rel(std::string path) {
+    std::replace(path.begin(), path.end(), '\\', '/');
+    if (path.rfind("tests/", 0) == 0) {
+        path = path.substr(6);
+    }
+    return path;
+}
+
+static std::map<std::string, CaseMeta> load_case_manifest() {
+    std::map<std::string, CaseMeta> manifest;
+    std::ifstream f(fs::path("benchmarks") / "cases.csv");
+    if (!f) return manifest;
+
+    std::string line;
+    std::getline(f, line); // skip header
+    while (std::getline(f, line)) {
+        if (line.empty()) continue;
+        std::stringstream ss(line);
+        std::string label, input_path, target_s, notes;
+        if (!std::getline(ss, label, ',')) continue;
+        if (!std::getline(ss, input_path, ',')) continue;
+        if (!std::getline(ss, target_s, ',')) continue;
+        std::getline(ss, notes);
+
+        CaseMeta meta;
+        meta.rel = normalize_test_rel(input_path);
+        meta.label = label;
+        try {
+            meta.default_target = std::stoi(target_s);
+        }
+        catch (...) {
+            meta.default_target = 0;
+        }
+        meta.notes = notes;
+        manifest[meta.rel] = meta;
+    }
+    return manifest;
+}
 
 static std::vector<TestFile> list_test_files() {
     std::vector<TestFile> files;
-    const fs::path base = fs::path("tests") / "data";
+    const auto manifest = load_case_manifest();
+    const fs::path base = fs::path("tests");
     std::error_code ec;
     if (!fs::exists(base, ec)) return files;
     for (auto& entry : fs::recursive_directory_iterator(base, ec)) {
         if (entry.is_regular_file(ec)) {
             const std::string ext = entry.path().extension().string();
-            if (ext == ".csv" || ext == ".CSV") {
+            const std::string name = entry.path().filename().string();
+            const fs::path parent = entry.path().parent_path();
+            if ((ext == ".csv" || ext == ".CSV") &&
+                name.rfind("input_", 0) == 0 &&
+                parent.filename() != ".rubric_tmp" &&
+                parent.filename() != "data") {
                 TestFile tf;
                 tf.rel = fs::relative(entry.path(), base, ec).string();
                 // normalize to forward slashes for JSON
                 std::replace(tf.rel.begin(), tf.rel.end(), '\\', '/');
-                tf.name = entry.path().filename().string();
+                tf.name = name;
                 tf.bytes = static_cast<std::size_t>(entry.file_size(ec));
+                auto it = manifest.find(tf.rel);
+                if (it != manifest.end()) {
+                    tf.label = it->second.label;
+                    tf.default_target = it->second.default_target;
+                    tf.notes = it->second.notes;
+                }
                 files.push_back(std::move(tf));
             }
         }
@@ -405,7 +467,10 @@ static void handle(SOCKET client, const std::string& raw_request) {
             if (i) json += ",";
             json += "{\"rel\":" + json_str(files[i].rel) +
                 ",\"name\":" + json_str(files[i].name) +
-                ",\"bytes\":" + std::to_string(files[i].bytes) + "}";
+                ",\"bytes\":" + std::to_string(files[i].bytes) +
+                ",\"label\":" + json_str(files[i].label) +
+                ",\"default_target\":" + std::to_string(files[i].default_target) +
+                ",\"notes\":" + json_str(files[i].notes) + "}";
         }
         json += "]";
         send_200(client, "application/json", json);
@@ -414,7 +479,7 @@ static void handle(SOCKET client, const std::string& raw_request) {
 
     // ── API: get raw file content ─────────────────────────────────────────────
     if (path == "/api/get-file") {
-        // query: f=<rel-path-under-tests/data>
+        // query: f=<rel-path-under-tests>
         std::string rel;
         {
             // parse f= from query
@@ -562,8 +627,8 @@ int main(int argc, char* argv[]) {
     }
 
     // Warn if tests directory is missing (not fatal)
-    if (!fs::exists(fs::path("tests") / "data")) {
-        std::cerr << "Warning: tests/data/ directory not found. "
+    if (!fs::exists(fs::path("tests"))) {
+        std::cerr << "Warning: tests/ directory not found. "
             "Test runner will show no files.\n";
     }
 
