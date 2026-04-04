@@ -183,8 +183,15 @@ Smoke test passed.
 This validator checks all correctness criteria from the project rubric:
 
 ```bash
-powershell -ExecutionPolicy Bypass -File tests/run_rubric_checks.ps1
+# Rebuild the simplify executable if you deleted build artifacts
+make
+
+# Run the rubric checks
+powershell -ExecutionPolicy Bypass -File tests\run_rubric_checks.ps1
 ```
+
+Run the rebuild step in an environment where `make` and `g++` are available
+(for example Linux, macOS, or WSL).
 
 What is checked:
 - **Ring count** — output has same number of rings as input.
@@ -238,15 +245,14 @@ The project includes a browser-based dashboard for visual exploration.
 ### Start the server
 
 ```bash
-# Install Node.js dependencies (first time only)
-cd server
-npm install
+# Rebuild the dashboard server if you deleted build artifacts
+make server
 
-# Start the server
-node server.js
+# Start the server on port 8080
+./dashboard_server
 ```
 
-Then open **http://localhost:3000** in your browser.
+Then open **http://localhost:8080** in your browser.
 
 ### What the dashboard shows
 
