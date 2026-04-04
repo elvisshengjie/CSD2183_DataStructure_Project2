@@ -88,11 +88,12 @@ discarded — no expensive heap restructuring needed.
 
 - `g++` with C++17 support (GCC 7+ or Clang 5+)
 - `make`
-- Unix-like system: Linux, macOS, or Windows Subsystem for Linux (WSL)
+- Linux, macOS, or WSL for the provided `make` / shell-script workflow
 
-### Optional (for exact symmetric-difference displacement reporting)
+### Optional tools
 
-- Python 3 with `shapely`:
+- Python 3 for validation and benchmarking helpers
+- `shapely` for `tools/compute_symdiff_area.py`:
   ```bash
   pip install shapely
   ```
@@ -121,8 +122,8 @@ This produces `./simplify` in the repository root.
 # Simplify to at most 12 vertices
 ./simplify tests/data/example_input.csv 12
 
-# Simplify a large polygon to 5000 vertices
-./simplify tests/data/large_polygon.csv 5000
+# Simplify a benchmark-scale polygon to 2500 vertices
+./simplify tests/custom/input_tc5_spiral_5000v.csv 2500
 ```
 
 ### Input CSV Format
@@ -169,7 +170,7 @@ Total areal displacement: 1.600000000000000e-02
 # Linux / macOS / WSL
 bash tests/run_smoke_test.sh
 
-# PowerShell (Windows)
+# PowerShell (Windows + WSL)
 powershell -ExecutionPolicy Bypass -File tests/run_smoke_test.ps1
 ```
 
@@ -210,6 +211,10 @@ All rubric checks passed.
 ### Reference File Comparison
 
 ```bash
+# Linux / macOS / WSL
+bash tests/run_fixture_tests.sh
+
+# PowerShell (Windows + WSL)
 powershell -ExecutionPolicy Bypass -File tests/run_fixture_tests.ps1
 ```
 
@@ -221,35 +226,44 @@ powershell -ExecutionPolicy Bypass -File tests/run_fixture_tests.ps1
 
 ## Custom Challenge Datasets
 
-Five custom datasets are included in `tests/custom/` to stress-test specific
-aspects of the implementation. Generate or regenerate them with:
+Ten custom datasets are included in `tests/custom/` to stress-test specific
+algorithmic failure modes, from large benchmark-scale inputs to smaller
+topology edge cases.
 
-```bash
-python3 tests/custom/generate_custom_datasets.py
-```
+These CSVs are already checked into the repository, so no dataset-generation
+step is required before benchmarking or using the dashboard.
 
-| Dataset | What It Tests |
-|---|---|
-| `input_narrow_corridor_with_two_holes.csv` | Narrow gaps between holes and exterior ring; easy to create crossings if topology checks are weak. |
-| `input_spiky_star_80.csv` | 80-vertex star with alternating spikes; many near-equal-displacement candidates that stress the heap. |
-| `input_grid_with_nine_holes.csv` | Nine interior rings; tests multi-ring bookkeeping and repeated spatial index queries. |
-| `input_high_vertex_wavy_ring_720.csv` | 720-vertex wavy boundary; primary runtime scaling benchmark point. |
-| `input_near_degenerate_corrugated_strip_122.csv` | Thin corrugated geometry with near-collinear edges; tests floating-point robustness. |
+| Dataset | Target | What It Tests |
+|---|---:|---|
+| `input_tc1_circle_4000v.csv` | 2000 | Uniform circle baseline; near-zero displacement case for clean scaling checks. |
+| `input_tc2_fractal_3072v.csv` | 1536 | Koch-style fractal coastline; stresses the E-point solver on self-similar near-collinear runs. |
+| `input_tc3_holes_50.csv` | 332 | Outer ring with 50 holes; tests multi-ring budget routing and per-ring orientation handling. |
+| `input_tc4_spikes_2003v.csv` | 1001 | Near-degenerate zigzag spikes (`h = 1e-4`); stresses epsilon handling and tiny triangle collapses. |
+| `input_tc5_spiral_5000v.csv` | 2500 | Outward spiral with self-proximate edges; hammers spatial-grid intersection queries. |
+| `input_narrow_corridor_with_two_holes.csv` | 9 | Narrow gaps between holes and exterior ring; easy to create crossings if topology checks are weak. |
+| `input_spiky_star_80.csv` | 40 | 80-vertex star with alternating spikes; many near-equal-displacement candidates that stress the heap. |
+| `input_grid_with_nine_holes.csv` | 36 | Nine interior rings; tests multi-ring bookkeeping and repeated spatial index queries. |
+| `input_high_vertex_wavy_ring_720.csv` | 180 | 720-vertex wavy boundary; primary runtime scaling benchmark point. |
+| `input_near_degenerate_corrugated_strip_122.csv` | 40 | Thin corrugated geometry with near-collinear edges; tests floating-point robustness. |
 
 ---
 
 ## Dashboard (Interactive Web UI)
 
-The project includes a browser-based dashboard for visual exploration.
+The project includes a browser-based dashboard for visual exploration, served by
+the C++ HTTP server in `src/server.cpp`.
 
 ### Start the server
 
 ```bash
-# Rebuild the dashboard server if you deleted build artifacts
+# Build the dashboard server
 make server
 
-# Start the server on port 8080
+# Start the server (defaults to port 8080)
 ./dashboard_server
+
+# Or build and run in one step
+make run-server
 ```
 
 Then open **http://localhost:8080** in your browser.
@@ -270,15 +284,16 @@ Then open **http://localhost:8080** in your browser.
 ## Benchmarking
 
 ```bash
-# Linux / WSL
+# Linux / macOS / WSL
+make
 python3 benchmarks/run_benchmarks.py
 
-# PowerShell
+# PowerShell (uses WSL for `make` and `python3`)
 powershell -ExecutionPolicy Bypass -File benchmarks/run_benchmarks.ps1
 ```
 
 Results are written to `benchmarks/results/benchmark_results.csv` with columns:
-`input_vertices, output_vertices, elapsed_seconds, peak_kb, areal_displacement`.
+`label, input_path, target_vertices, input_vertices, output_vertices, elapsed_seconds, peak_rss_kb, reported_areal_displacement, notes`.
 
 See `benchmarks/REPORT.md` for analysis, scaling plots, and fitted functions.
 
@@ -294,17 +309,19 @@ See `benchmarks/REPORT.md` for analysis, scaling plots, and fitted functions.
 │   └── simplifier.hpp      # Simplifier class declaration
 ├── src/
 │   ├── csv_io.cpp          # CSV loading, output printing, cleanup
+│   ├── dashboard.html      # Interactive browser dashboard
 │   ├── geometry.cpp        # Cross product, polygon area, struct implementations
 │   ├── main.cpp            # Entry point: parse args, load, simplify, print
+│   ├── server.cpp          # C++ HTTP server for the dashboard API/UI
 │   └── simplifier.cpp      # APSC algorithm, spatial grid, priority queue
-├── server/
-│   ├── server.js           # Node.js/Express backend for dashboard
-│   └── package.json
-├── dashboard.html          # Interactive browser dashboard (served by server.js)
 ├── tests/
-│   ├── data/               # Reference test CSVs and expected outputs
-│   ├── custom/             # Custom challenge datasets and generator
+│   ├── custom/             # Custom challenge datasets
+│   ├── data/               # Smoke-test fixture data
+│   ├── README.md           # Fixture inventory and expected outputs
+│   ├── run_fixture_tests.sh
+│   ├── run_tests.sh        # Alternate shell runner for fixture comparisons
 │   ├── run_smoke_test.ps1
+│   ├── run_smoke_test.sh
 │   ├── run_fixture_tests.ps1
 │   ├── run_rubric_checks.ps1
 │   └── validate_output.py  # Geometry validation script
@@ -329,9 +346,9 @@ See `benchmarks/REPORT.md` for analysis, scaling plots, and fitted functions.
 |---|---|---|
 | `g++` (C++17) | **Yes** | Compile the simplify binary |
 | `make` | **Yes** | Build system |
-| Python 3 | Optional | Generate custom datasets, run benchmarks |
-| `shapely` (Python) | Optional | Exact symmetric-difference displacement |
-| Node.js + Express | Optional | Dashboard web server |
+| Python 3 | Optional | Run validation and benchmarking helpers |
+| `shapely` (Python) | Optional | Exact symmetric-difference helper in `tools/compute_symdiff_area.py` |
+| WSL | Optional | Lets the PowerShell wrappers invoke `make`, `bash`, and `python3` on Windows |
 
 ---
 
